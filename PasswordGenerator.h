@@ -1,5 +1,5 @@
-#ifndef PASSWORDGENERATOR_HPP
-#define PASSWORDGENERATOR_HPP
+#ifndef PASSWORDGENERATOR_H
+#define PASSWORDGENERATOR_H
 
 #include "string"
 #include <random>
