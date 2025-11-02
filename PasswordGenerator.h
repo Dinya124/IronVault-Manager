@@ -1,0 +1,14 @@
+//
+// Created by danil on 02.11.2025.
+//
+
+#ifndef IRONVAULT_MANAGER_PASSWORDGENERATOR_H
+#define IRONVAULT_MANAGER_PASSWORDGENERATOR_H
+
+
+class PasswordGenerator {
+
+};
+
+
+#endif //IRONVAULT_MANAGER_PASSWORDGENERATOR_H
