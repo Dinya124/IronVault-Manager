@@ -34,4 +34,30 @@ std::string PasswordGenerator::generate() {
     }
     return  password;
 }
+// Сеттеры
+void PasswordGenerator::setLength(int len) {
+    if (len <= 0){
+        throw  std::invalid_argument("Password length must be positive");
+    }
+    length = len;
+}
 
+void PasswordGenerator::setUppercase(bool use) {
+    use_uppercase = use;
+    validateSettings();
+}
+
+void PasswordGenerator::setLowercase(bool use) {
+    use_lowercase = use;
+    validateSettings();
+}
+
+void PasswordGenerator::setDigits(bool use) {
+    use_digits = use;
+    validateSettings();
+}
+
+void PasswordGenerator::setSpecialChars(bool use) {
+    use_special_chars = use;
+    validateSettings();
+}
