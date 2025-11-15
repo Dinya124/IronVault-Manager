@@ -61,3 +61,9 @@ void PasswordGenerator::setSpecialChars(bool use) {
     use_special_chars = use;
     validateSettings();
 }
+// Геттеры
+int PasswordGenerator::getLength() const {return length;}
+bool PasswordGenerator::getUppercase() const {return use_uppercase;}
+bool PasswordGenerator::getLowercase() const {return  use_lowercase;}
+bool PasswordGenerator::getDigits() const {return  use_digits;}
+bool PasswordGenerator::getSpecialChars() const {return use_special_chars;}
