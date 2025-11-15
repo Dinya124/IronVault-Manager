@@ -32,12 +32,13 @@ std::string PasswordGenerator::generate() {
         int random_index = dist(random_engine);
         password += available_chars[random_index];
     }
-    return  password;
+    return password;
 }
+
 // Сеттеры
 void PasswordGenerator::setLength(int len) {
-    if (len <= 0){
-        throw  std::invalid_argument("Password length must be positive");
+    if (len <= 0) {
+        throw std::invalid_argument("Password length must be positive");
     }
     length = len;
 }
@@ -61,9 +62,51 @@ void PasswordGenerator::setSpecialChars(bool use) {
     use_special_chars = use;
     validateSettings();
 }
+
 // Геттеры
-int PasswordGenerator::getLength() const {return length;}
-bool PasswordGenerator::getUppercase() const {return use_uppercase;}
-bool PasswordGenerator::getLowercase() const {return  use_lowercase;}
-bool PasswordGenerator::getDigits() const {return  use_digits;}
-bool PasswordGenerator::getSpecialChars() const {return use_special_chars;}
+int PasswordGenerator::getLength() const { return length; }
+
+bool PasswordGenerator::getUppercase() const { return use_uppercase; }
+
+bool PasswordGenerator::getLowercase() const { return use_lowercase; }
+
+bool PasswordGenerator::getDigits() const { return use_digits; }
+
+bool PasswordGenerator::getSpecialChars() const { return use_special_chars; }
+
+//Вспомогательные методы
+std::string PasswordGenerator::getUpperChars() const {
+    return "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+}
+
+std::string PasswordGenerator::getLowercaseChars() const {
+    return "abcdefghijklmnopqrstuvwxyz";
+}
+
+std::string PasswordGenerator::getDigitChars() const {
+    return "0123456789";
+}
+
+std::string PasswordGenerator::getSpecialCharsSet() const {
+    return "!@#$%^&*()_+-=[]{}|;:,.<>?";
+}
+
+void PasswordGenerator::validateSettings() const {
+    if (length <= 0) {
+        throw std::invalid_argument("Password length must be positive");
+    }
+    if (!use_uppercase && !use_lowercase && !use_digits && !use_special_chars) {
+        throw std::runtime_error("At least one character set must be enabled");
+    }
+
+    int min_length = 1;
+    if (use_uppercase) min_length++;
+    if (use_lowercase) min_length++;
+    if (use_digits) min_length++;
+    if (use_special_chars) min_length++;
+
+    if (length < min_length){
+        throw std::invalid_argument("Password length is too short for selected character sets");
+    }
+
+}
