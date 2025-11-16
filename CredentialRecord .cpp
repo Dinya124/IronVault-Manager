@@ -91,3 +91,15 @@ std::string CredentialRecord::getLastModified() const { return last_modified; }
 bool CredentialRecord::isEmpty() const {
     return service_name.empty() && login.empty();
 }
+
+// Строковое представление
+std::string CredentialRecord::toString() const {
+    std::stringstream ss;
+    ss << "Service: " << service_name
+       << "\nURL: " << url
+       << "\nLogin: " << login
+       << "\nCategory: " << category
+       << "\nLast Modified: " << std::ctime(&last_modified);
+    return ss.str();
+}
+
