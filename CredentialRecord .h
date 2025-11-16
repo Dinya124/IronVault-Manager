@@ -42,6 +42,21 @@ public:
 
     void setInternalKey(const std::string &key);
 
+    // Геттеры
+    std::string getServiceName() const;
+
+    std::string getUrl() const;
+
+    std::string getLogin() const;
+
+    std::string getEncryptedPassword() const;
+
+    std::string getCategory() const;
+
+    std::string getInternalKey() const;
+
+    std::time_t getLastModified() const;
+
 
 };
 
