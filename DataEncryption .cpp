@@ -176,3 +176,43 @@ void DataEncryption::cleanupCipherContext(EVP_CIPHER_CTX* ctx) {
         EVP_CIPHER_CTX_free(ctx);
     }
 }
+// Кодирование в Base64
+std::string DataEncryption::encodeBase64(const std::vector<unsigned char>& data) {
+    BIO* b64 = BIO_new(BIO_f_base64());
+    BIO* bio = BIO_new(BIO_s_mem());
+    bio = BIO_push(b64, bio);
+
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
+    BIO_write(bio, data.data(), data.size());
+    BIO_flush(bio);
+
+    BUF_MEM* bufferPtr;
+    BIO_get_mem_ptr(bio, &bufferPtr);
+
+    std::string result(bufferPtr->data, bufferPtr->length);
+
+    BIO_free_all(bio);
+    return result;
+}
+
+// Декодирование из Base64
+std::vector<unsigned char> DataEncryption::decodeBase64(const std::string& data) {
+    BIO* b64 = BIO_new(BIO_f_base64());
+    BIO* bio = BIO_new_mem_buf(data.data(), data.length());
+    bio = BIO_push(b64, bio);
+
+    BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
+
+    std::vector<unsigned char> result(data.length());
+    int length = BIO_read(bio, result.data(), data.length());
+
+    BIO_free_all(bio);
+
+    if (length > 0) {
+        result.resize(length);
+    } else {
+        throw std::runtime_error("Failed to decode Base64 data");
+    }
+
+    return result;
+}
