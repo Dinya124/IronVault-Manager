@@ -24,6 +24,10 @@ public:
                      const std::string &login, const std::string &encrypted_password,
                      const std::string &category = "General");
 
+
+    // Основные методы
+    std::string getPassword(const std::string &decryption_key) const;// возвращает расшифрованный пароль
+    void updateLastModified();
 };
 
 
