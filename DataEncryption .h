@@ -34,6 +34,25 @@ public:
 
     static void cleanupCrypto();
 
+    // Проверка целостности данных
+    static bool
+    verifyIntegrity(const std::string &ciphertext, const std::string &password, const std::string &internal_key = "");
+
+private:
+    // Внутренние методы для работы с OpenSSL
+    static EVP_CIPHER_CTX *createCipherContext();
+
+    static void cleanupCipherContext(EVP_CIPHER_CTX *ctx);
+
+    // Методы для работы с данными
+    static std::string encodeBase64(const std::vector<unsigned char> &data);
+
+    static std::vector<unsigned char> decodeBase64(const std::string &data);
+
+    // Константы
+    static const std::string CIPHER_ALGORITHM;
+    static const std::string DIGEST_ALGORITHM;
+
 
 };
 
