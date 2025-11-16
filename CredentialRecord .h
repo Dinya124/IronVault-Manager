@@ -57,8 +57,16 @@ public:
 
     std::time_t getLastModified() const;
 
+    // Вспомогательные мтеоды
+    bool isEmpty() const;
+
+    std::string toString() const;
+
+    // сохранение в файл
+    std::string serialize() const;
+
+    static CredentialRecord deserialize(const std::string &data);
 
 };
-
 
 #endif
