@@ -126,3 +126,38 @@ std::string DataEncryption::decrypt(const std::string& ciphertext, const std::st
 
     return std::string(plaintext.begin(), plaintext.begin() + plaintext_len);
 }
+// Генерация ключа из пароля с использованием PBKDF2
+std::vector<unsigned char> DataEncryption::deriveKey(const std::string& password, const std::vector<unsigned char>& salt, const std::string& internal_key) {
+    std::vector<unsigned char> key(KEY_LENGTH);
+
+    // Комбинируем пароль с internal_key для усиления безопасности
+    std::string combined_password = password + internal_key;
+
+    if (PKCS5_PBKDF2_HMAC(combined_password.c_str(), combined_password.length(),
+                          salt.data(), salt.size(),
+                          ITERATIONS,
+                          EVP_sha256(),
+                          KEY_LENGTH, key.data()) != 1) {
+        throw std::runtime_error("Failed to derive key from password");
+    }
+
+    return key;
+}
+
+// Генерация случайной соли
+std::vector<unsigned char> DataEncryption::generateSalt() {
+    std::vector<unsigned char> salt(SALT_LENGTH);
+    if (RAND_bytes(salt.data(), SALT_LENGTH) != 1) {
+        throw std::runtime_error("Failed to generate salt");
+    }
+    return salt;
+}
+
+// Генерация случайного IV
+std::vector<unsigned char> DataEncryption::generateIV() {
+    std::vector<unsigned char> iv(IV_LENGTH);
+    if (RAND_bytes(iv.data(), IV_LENGTH) != 1) {
+        throw std::runtime_error("Failed to generate IV");
+    }
+    return iv;
+}
