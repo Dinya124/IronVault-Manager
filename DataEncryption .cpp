@@ -68,3 +68,61 @@ DataEncryption::encrypt(const std::string &plaintext, const std::string &passwor
 
     return encodeBase64(result);
 }
+// Основной метод дешифрования
+std::string DataEncryption::decrypt(const std::string& ciphertext, const std::string& password, const std::string& internal_key) {
+    if (ciphertext.empty()) {
+        throw std::invalid_argument("Ciphertext cannot be empty");
+    }
+    if (password.empty()) {
+        throw std::invalid_argument("Password cannot be empty");
+    }
+
+    // Декодируем из Base64
+    std::vector<unsigned char> data = decodeBase64(ciphertext);
+
+    // Проверяем минимальный размер данных
+    if (data.size() < SALT_LENGTH + IV_LENGTH) {
+        throw std::runtime_error("Invalid ciphertext format");
+    }
+
+    // Извлекаем соль и IV
+    std::vector<unsigned char> salt(data.begin(), data.begin() + SALT_LENGTH);
+    std::vector<unsigned char> iv(data.begin() + SALT_LENGTH, data.begin() + SALT_LENGTH + IV_LENGTH);
+    std::vector<unsigned char> encrypted_data(data.begin() + SALT_LENGTH + IV_LENGTH, data.end());
+
+    // Производим ключ из пароля
+    std::vector<unsigned char> key = deriveKey(password, salt, internal_key);
+
+    // Создаем контекст дешифрования
+    EVP_CIPHER_CTX* ctx = createCipherContext();
+    if (!ctx) {
+        throw std::runtime_error("Failed to create cipher context");
+    }
+
+    // Инициализируем дешифрование
+    if (EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), nullptr, key.data(), iv.data()) != 1) {
+        cleanupCipherContext(ctx);
+        throw std::runtime_error("Failed to initialize decryption");
+    }
+
+    // Дешифруем данные
+    std::vector<unsigned char> plaintext(encrypted_data.size() + EVP_CIPHER_CTX_block_size(ctx));
+    int len = 0;
+    int plaintext_len = 0;
+
+    if (EVP_DecryptUpdate(ctx, plaintext.data(), &len, encrypted_data.data(), encrypted_data.size()) != 1) {
+        cleanupCipherContext(ctx);
+        throw std::runtime_error("Failed to decrypt data");
+    }
+    plaintext_len = len;
+
+    if (EVP_DecryptFinal_ex(ctx, plaintext.data() + len, &len) != 1) {
+        cleanupCipherContext(ctx);
+        throw std::runtime_error("Failed to finalize decryption - possible wrong password");
+    }
+    plaintext_len += len;
+
+    cleanupCipherContext(ctx);
+
+    return std::string(plaintext.begin(), plaintext.begin() + plaintext_len);
+}
