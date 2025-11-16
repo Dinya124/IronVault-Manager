@@ -161,3 +161,18 @@ std::vector<unsigned char> DataEncryption::generateIV() {
     }
     return iv;
 }
+// Создание контекста шифрования
+EVP_CIPHER_CTX* DataEncryption::createCipherContext() {
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        throw std::runtime_error("Failed to create cipher context");
+    }
+    return ctx;
+}
+
+// Очистка контекста шифрования
+void DataEncryption::cleanupCipherContext(EVP_CIPHER_CTX* ctx) {
+    if (ctx) {
+        EVP_CIPHER_CTX_free(ctx);
+    }
+}
