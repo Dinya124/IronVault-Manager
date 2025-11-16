@@ -28,6 +28,21 @@ public:
     // Основные методы
     std::string getPassword(const std::string &decryption_key) const;// возвращает расшифрованный пароль
     void updateLastModified();
+
+    // Сеттеры
+    void setServiceName(const std::string &name);
+
+    void setUrl(const std::string &url);
+
+    void setLogin(const std::string &login);
+
+    void setEncryptedPassword(const std::string &encrypted_password);
+
+    void setCategory(const std::string &category);
+
+    void setInternalKey(const std::string &key);
+
+
 };
 
 
