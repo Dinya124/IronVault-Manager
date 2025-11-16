@@ -87,3 +87,7 @@ std::string CredentialRecord::getInternalKey() const { return internal_key; }
 
 std::string CredentialRecord::getLastModified() const { return last_modified; }
 
+// Проверка на путсую запсь
+bool CredentialRecord::isEmpty() const {
+    return service_name.empty() && login.empty();
+}
