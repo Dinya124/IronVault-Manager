@@ -14,6 +14,17 @@ private:
     std::string internal_key; // внутренний ключ для шифрования
     std::time_t last_modified; // дата последнего изменения
 
+
+
+public:
+    // Конструкторы
+    CredentialRecord();
+
+    CredentialRecord(const std::string &service, const std::string &url,
+                     const std::string &login, const std::string &encrypted_password,
+                     const std::string &category = "General");
+
 };
+
 
 #endif
