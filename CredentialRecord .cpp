@@ -34,3 +34,41 @@ std::string CredentialRecord::getPassword(const std::string &decryption_key) con
 void CredentialRecord::updateLastModified() {
     last_modified = std::time(nullptr);
 }
+
+// Сеттеры
+void CredentialRecord::setServiceName(const std::string &name) {
+    if (name.empty()) {
+        throw std::invalid_argument("Service name cannot be empty");
+    }
+    service_name = name;
+    updateLastModified();
+}
+
+void CredentialRecord::setUrl(const std::string &url) {
+    this->url = url;
+    updateLastModified();
+}
+
+void CredentialRecord::setLogin(const std::string &login) {
+    if (login.empty()) {
+        throw std::invalid_argument("Login cannot be empty");
+    }
+    this->login = login;
+    updateLastModified();
+}
+
+void CredentialRecord::setEncryptedPassword(const std::string &encrypted_password) {
+    this->encrypted_password = encrypted_password;
+    updateLastModified();
+}
+
+void CredentialRecord::setCategory(const std::string &category) {
+    this->category = category.empty() ? "General" : category;
+    updateLastModified();
+}
+
+void CredentialRecord::setInternalKey(const std::string &key) {
+    internal_key = key;
+    updateLastModified();
+}
+
