@@ -216,3 +216,27 @@ std::vector<unsigned char> DataEncryption::decodeBase64(const std::string& data)
 
     return result;
 }
+
+// Проверка целостности данных
+bool DataEncryption::verifyIntegrity(const std::string& ciphertext, const std::string& password, const std::string& internal_key) {
+    try {
+        // Пытаемся расшифровать данные
+        decrypt(ciphertext, password, internal_key);
+        return true;
+    } catch (const std::exception& e) {
+        return false;
+    }
+}
+
+// Инициализация криптографической библиотеки
+bool DataEncryption::initializeCrypto() {
+    OpenSSL_add_all_algorithms();
+    ERR_load_crypto_strings();
+    return true;
+}
+
+// Очистка криптографической библиотеки
+void DataEncryption::cleanupCrypto() {
+    EVP_cleanup();
+    ERR_free_strings();
+}
