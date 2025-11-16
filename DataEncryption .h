@@ -25,6 +25,16 @@ public:
     static std::vector<unsigned char> deriveKey(const std::string &password, const std::vector<unsigned char> &salt,
                                                 const std::string &internal_key = "");
 
+    // Вспомогательные методы
+    static std::vector<unsigned char> generateSalt();
+
+    static std::vector<unsigned char> generateIV();
+
+    static bool initializeCrypto();
+
+    static void cleanupCrypto();
+
+
 };
 
 #endif
