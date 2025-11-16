@@ -103,3 +103,15 @@ std::string CredentialRecord::toString() const {
     return ss.str();
 }
 
+// Сериализация для сохранения в файл
+std::string CredentialRecord::serialize() const {
+    std::stringstream  ss;
+    ss << service_name << "\n"
+       << url << "\n"
+       << login << "\n"
+       << encrypted_password << "\n"
+       << category << "\n"
+       << internal_key << "\n"
+       << last_modified;
+    return ss.str();
+}
