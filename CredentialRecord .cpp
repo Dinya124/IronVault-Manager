@@ -72,3 +72,18 @@ void CredentialRecord::setInternalKey(const std::string &key) {
     updateLastModified();
 }
 
+// Геттеры
+std::string CredentialRecord::getServiceName() const { return service_name; }
+
+std::string CredentialRecord::getUrl() const { return url; }
+
+std::string CredentialRecord::getLogin() const { return login; }
+
+std::string CredentialRecord::getEncryptedPassword() const { return encrypted_password; }
+
+std::string CredentialRecord::getCategory() const { return category; }
+
+std::string CredentialRecord::getInternalKey() const { return internal_key; }
+
+std::string CredentialRecord::getLastModified() const { return last_modified; }
+
