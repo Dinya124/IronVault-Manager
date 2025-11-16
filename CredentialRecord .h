@@ -1,8 +1,19 @@
-//
-// Created by danil on 15.11.2025.
-//
+#ifndef CREDENTIALRECORD_H
+#define CREDENTIALRECORD_H
 
-#ifndef IRONVAULT_MANAGER_CREDENTIALRECORD_H
-#define IRONVAULT_MANAGER_CREDENTIALRECORD_H
+#include <string>
+#include <ctime>
 
-#endif //IRONVAULT_MANAGER_CREDENTIALRECORD_H
+class CredentialRecord {
+private:
+    std::string service_name; // название сервиса
+    std::string url; // URL-адрес сервиса
+    std::string login; // логин
+    std::string encrypted_password; // зашифрованный пароль
+    std::string category; // категория
+    std::string internal_key; // внутренний ключ для шифрования
+    std::time_t last_modified; // дата последнего изменения
+
+};
+
+#endif
