@@ -105,7 +105,7 @@ std::string CredentialRecord::toString() const {
 
 // Сериализация для сохранения в файл
 std::string CredentialRecord::serialize() const {
-    std::stringstream  ss;
+    std::stringstream ss;
     ss << service_name << "\n"
        << url << "\n"
        << login << "\n"
@@ -114,4 +114,25 @@ std::string CredentialRecord::serialize() const {
        << internal_key << "\n"
        << last_modified;
     return ss.str();
+}
+
+// Десериализация из строки
+CredentialRecord CredentialRecord::deserialize(const std::string& data) {
+    std::stringstream ss(data);
+    CredentialRecord record;
+
+    std::getline(ss, record.service_name);
+    std::getline(ss, record.url);
+    std::getline(ss, record.login);
+    std::getline(ss, record.encrypted_password);
+    std::getline(ss, record.category);
+    std::getline(ss, record.internal_key);
+
+    std::string time_str;
+    std::getline(ss, time_str);
+    if (!time_str.empty()) {
+        record.last_modified = std::stol(time_str);
+    }
+
+    return record;
 }
