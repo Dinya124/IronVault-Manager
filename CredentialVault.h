@@ -87,6 +87,25 @@ public:
 
     bool importFromCsv(const std::string &file_path, const std::string &master_password);
 
+private:
+    // Внутренние методы
+    std::string encryptVaultData(const std::string &data, const std::string &master_password) const;
+
+    std::string decryptVaultData(const std::string &encrypted_data, const std::string &master_password) const;
+
+    void initializePasswordGenerator();
+
+    bool validateVaultHeader(const std::string &data) const;
+
+    std::string createVaultHeader() const;
+
+    // Вспомогательные методы
+    void sortRecords();
+
+    void removeDuplicateRecords();
+
+    bool backupVaultFile() const;
+
 };
 
 
