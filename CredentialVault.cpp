@@ -265,3 +265,70 @@ std::vector<std::string> CredentialVault::getAllCategories() const {
 
     return categories;
 }
+// Генерация пароля
+std::string CredentialVault::generatePassword(int length, bool use_uppercase,
+                                              bool use_lowercase, bool use_digits,
+                                              bool use_special) {
+    if (!password_generator) {
+        initializePasswordGenerator();
+    }
+
+    password_generator->setLength(length);
+    password_generator->setUppercase(use_uppercase);
+    password_generator->setLowercase(use_lowercase);
+    password_generator->setDigits(use_digits);
+    password_generator->setSpecialChars(use_special);
+
+    return password_generator->generate();
+}
+
+// Статистика
+size_t CredentialVault::getRecordCount() const {
+    return records.size();
+}
+
+size_t CredentialVault::getCategoryCount() const {
+    return getAllCategories().size();
+}
+
+std::time_t CredentialVault::getLastModified() const {
+    if (records.empty()) {
+        return std::time(nullptr);
+    }
+
+    std::time_t last_modified = 0;
+    for (const auto& record : records) {
+        if (record.getLastModified() > last_modified) {
+            last_modified = record.getLastModified();
+        }
+    }
+
+    return last_modified;
+}
+
+// Геттеры
+std::string CredentialVault::getVaultFilePath() const { return vault_file_path; }
+bool CredentialVault::isAuthenticated() const { return is_authenticated; }
+std::vector<CredentialRecord> CredentialVault::getAllRecords() const {
+    if (!is_authenticated) {
+        throw std::runtime_error("Vault is not authenticated");
+    }
+    return records;
+}
+
+// Валидация уникальности имени сервиса
+bool CredentialVault::isServiceNameUnique(const std::string& service_name) const {
+    for (const auto& record : records) {
+        if (record.getServiceName() == service_name) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Валидация записи
+bool CredentialVault::validateRecord(const CredentialRecord& record) const {
+    return !record.isEmpty() &&
+           !record.getServiceName().empty() &&
+           !record.getLogin().empty();
+}
