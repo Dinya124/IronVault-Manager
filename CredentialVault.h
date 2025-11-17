@@ -35,7 +35,11 @@ public:
     bool verifyMasterPassword(const std::string& master_password) const;
     void lockVault();
 
-
+    // Управление записями
+    bool addRecord(const CredentialRecord& record);
+    bool updateRecord(const std::string& service_name, const CredentialRecord& updated_record);
+    bool removeRecord(const std::string& service_name);
+    CredentialRecord* findRecord(const std::string& service_name);
 
 
 };
