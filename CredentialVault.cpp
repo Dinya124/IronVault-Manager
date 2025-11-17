@@ -332,3 +332,68 @@ bool CredentialVault::validateRecord(const CredentialRecord& record) const {
            !record.getServiceName().empty() &&
            !record.getLogin().empty();
 }
+
+// Приватные методы
+
+// Шифрование данных хранилища
+std::string CredentialVault::encryptVaultData(const std::string& data, const std::string& master_password) const {
+    return DataEncryption::encrypt(data, master_password);
+}
+
+// Дешифрование данных хранилища
+std::string CredentialVault::decryptVaultData(const std::string& encrypted_data, const std::string& master_password) const {
+    return DataEncryption::decrypt(encrypted_data, master_password);
+}
+
+// Инициализация генератора паролей
+void CredentialVault::initializePasswordGenerator() {
+    password_generator = std::make_unique<PasswordGenerator>();
+}
+
+// Проверка заголовка хранилища
+bool CredentialVault::validateVaultHeader(const std::string& data) const {
+    std::stringstream data_stream(data);
+    std::string header, version;
+
+    std::getline(data_stream, header);
+    std::getline(data_stream, version);
+
+    return (header == VAULT_HEADER && version == VAULT_VERSION);
+}
+
+// Создание заголовка хранилища
+std::string CredentialVault::createVaultHeader() const {
+    std::stringstream header;
+    header << VAULT_HEADER << "\n";
+    header << VAULT_VERSION << "\n";
+    return header.str();
+}
+
+// Сортировка записей
+void CredentialVault::sortRecords() {
+    std::sort(records.begin(), records.end(),
+              [](const CredentialRecord& a, const CredentialRecord& b) {
+                  return a.getServiceName() < b.getServiceName();
+              });
+}
+
+// Создание резервной копии
+bool CredentialVault::backupVaultFile() const {
+    std::ifstream source(vault_file_path, std::ios::binary);
+    if (!source.is_open()) {
+        return true; // Файла нет - не нужно создавать бэкап
+    }
+
+    std::string backup_path = vault_file_path + ".backup";
+    std::ofstream dest(backup_path, std::ios::binary);
+
+    if (!dest.is_open()) {
+        return false;
+    }
+
+    dest << source.rdbuf();
+    source.close();
+    dest.close();
+
+    return true;
+}
