@@ -10,6 +10,7 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
+#include <ctime>
 
 class CredentialVault {
 private:
@@ -62,6 +63,29 @@ public:
                                  bool use_digits = true,
                                  bool use_special = true);
 
+    // Статистика
+    size_t getRecordCount() const;
+
+    size_t getCategoryCount() const;
+
+    std::time_t getLastModified() const;
+
+    // Геттеры
+    std::string getVaultFilePath() const;
+
+    bool isAuthenticated() const;
+
+    std::vector<CredentialRecord> getAllRecords() const;
+
+    // Валидация
+    bool isServiceNameUnique(const std::string &service_name) const;
+
+    bool validateRecord(const CredentialRecord &record) const;
+
+    // Импорт/экспорт
+    bool exportToCsv(const std::string &file_path, const std::string &master_password) const;
+
+    bool importFromCsv(const std::string &file_path, const std::string &master_password);
 
 };
 
