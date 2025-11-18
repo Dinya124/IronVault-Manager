@@ -17,6 +17,17 @@ private:
     static const size_t HASH_LENGTH = 32;     // 256 бит для SHA-256
     static const int PBKDF2_ITERATIONS = 100000; // Количество итераций
 
+public:
+    // Конструкторы
+    MasterPasswordManager();
+    explicit MasterPasswordManager(const std::string& stored_hash, const std::vector<unsigned char>& salt);
+
+    // Основные методы
+    static std::string hashPassword(const std::string& password);
+    static bool verifyPassword(const std::string& password, const std::string& stored_hash);
+    bool setNewPassword(const std::string& old_password, const std::string& new_password);
+    void forceSetNewPassword(const std::string& new_password);
+
 };
 
 
