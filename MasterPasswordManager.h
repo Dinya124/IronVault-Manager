@@ -53,6 +53,35 @@ public:
 
     static std::string vectorToString(const std::vector<unsigned char> &vec);
 
+// Сериализация/десериализация
+    std::string serialize() const;
+
+    static MasterPasswordManager deserialize(const std::string &data);
+
+    // Очистка чувствительных данных
+    void clearSensitiveData();
+
+private:
+    // Внутренние методы
+    static std::vector<unsigned char>
+    performPBKDF2(const std::string &password, const std::vector<unsigned char> &salt);
+
+    static bool constantTimeCompare(const std::string &a, const std::string &b);
+
+    // Проверки сложности пароля
+    static bool hasMinimumLength(const std::string &password, size_t min_length = 8);
+
+    static bool hasUppercase(const std::string &password);
+
+    static bool hasLowercase(const std::string &password);
+
+    static bool hasDigits(const std::string &password);
+
+    static bool hasSpecialChars(const std::string &password);
+
+    static bool hasNoCommonPatterns(const std::string &password);
+
+    static int calculateEntropy(const std::string &password);
 };
 
 
