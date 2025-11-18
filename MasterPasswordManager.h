@@ -82,6 +82,8 @@ private:
     static bool hasNoCommonPatterns(const std::string &password);
 
     static int calculateEntropy(const std::string &password);
+
+
 };
 
 
