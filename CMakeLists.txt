@@ -3,4 +3,6 @@ project(IronVault_Manager)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(IronVault_Manager main.cpp)
+add_executable(IronVault_Manager main.cpp
+        MasterPasswordManager.cpp
+        MasterPasswordManager.h)
