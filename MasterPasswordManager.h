@@ -20,13 +20,38 @@ private:
 public:
     // Конструкторы
     MasterPasswordManager();
-    explicit MasterPasswordManager(const std::string& stored_hash, const std::vector<unsigned char>& salt);
+
+    explicit MasterPasswordManager(const std::string &stored_hash, const std::vector<unsigned char> &salt);
 
     // Основные методы
-    static std::string hashPassword(const std::string& password);
-    static bool verifyPassword(const std::string& password, const std::string& stored_hash);
-    bool setNewPassword(const std::string& old_password, const std::string& new_password);
-    void forceSetNewPassword(const std::string& new_password);
+    static std::string hashPassword(const std::string &password);
+
+    static bool verifyPassword(const std::string &password, const std::string &stored_hash);
+
+    bool setNewPassword(const std::string &old_password, const std::string &new_password);
+
+    void forceSetNewPassword(const std::string &new_password);
+
+    // Проверка сложности пароля
+    static bool isPasswordStrong(const std::string &password);
+
+    static std::string getPasswordStrengthFeedback(const std::string &password);
+
+    // Геттеры
+    std::string getPasswordHash() const;
+
+    std::vector<unsigned char> getSalt() const;
+
+    bool isPasswordSet() const;
+
+    // Статические утилиты
+    static std::vector<unsigned char> generateSalt();
+
+    static std::string hashWithSalt(const std::string &password, const std::vector<unsigned char> &salt);
+
+    static std::vector<unsigned char> stringToVector(const std::string &str);
+
+    static std::string vectorToString(const std::vector<unsigned char> &vec);
 
 };
 
