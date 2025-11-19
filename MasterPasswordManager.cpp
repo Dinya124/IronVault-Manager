@@ -339,4 +339,5 @@ int MasterPasswordManager::calculateEntropy(const std::string &password) {
     // Энтропия = log2(charset_size) * length
     double entropy = std::log2(charset_size) * password.length();
     return static_cast<int>(entropy);
+
 }
