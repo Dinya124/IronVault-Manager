@@ -127,7 +127,36 @@ public:
 
     static SearchFilter createTextSearchFilter(const std::string &text);
 
+private:
+    // Внутренние методы для проверки соответствия
+    bool matchesServiceName(const CredentialRecord &record) const;
+
+    bool matchesLogin(const CredentialRecord &record) const;
+
+    bool matchesUrl(const CredentialRecord &record) const;
+
+    bool matchesCategory(const CredentialRecord &record) const;
+
+    bool matchesNotes(const CredentialRecord &record) const;
+
+    bool matchesDateRange(const CredentialRecord &record) const;
+
+    bool matchesCategories(const CredentialRecord &record) const;
+
+    // Вспомогательные методы для работы со строками
+    std::string toLower(const std::string &str) const;
+
+    bool containsText(const std::string &text, const std::string &query) const;
+
+    bool matchesText(const std::string &text, const std::string &query) const;
+
+    // Вспомогательные методы для работы с категориями
+    bool isInCategories(const std::string &category) const;
+
+    bool isExcludedCategory(const std::string &category) const;
 };
+
+
 
 
 #endif //IRONVAULT_MANAGER_SEARCHFILTER_H
