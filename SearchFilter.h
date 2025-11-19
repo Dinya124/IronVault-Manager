@@ -84,6 +84,49 @@ public:
 
     void clearExcludedCategories();
 
+    // Геттеры
+    std::string getServiceNameQuery() const;
+
+    std::string getLoginQuery() const;
+
+    std::string getUrlQuery() const;
+
+    std::string getCategoryQuery() const;
+
+    std::string getNotesQuery() const;
+
+    bool isCaseSensitive() const;
+
+    bool isExactMatch() const;
+
+    bool isSearchInNotes() const;
+
+    std::time_t getDateFrom() const;
+
+    std::time_t getDateTo() const;
+
+    std::vector<std::string> getCategories() const;
+
+    std::vector<std::string> getExcludedCategories() const;
+
+    // Проверка активности фильтров
+    bool isActive() const;
+
+    bool hasTextFilters() const;
+
+    bool hasDateFilters() const;
+
+    bool hasCategoryFilters() const;
+
+    // Статические методы для удобства
+    static SearchFilter createServiceFilter(const std::string &service_name);
+
+    static SearchFilter createCategoryFilter(const std::string &category);
+
+    static SearchFilter createDateRangeFilter(std::time_t from, std::time_t to);
+
+    static SearchFilter createTextSearchFilter(const std::string &text);
+
 };
 
 
