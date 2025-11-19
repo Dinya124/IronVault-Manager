@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cctype>
 #include <map>
+#include <cmath>
 
 // Конструктор по умолчанию
 MasterPasswordManager::MasterPasswordManager()
@@ -200,7 +201,8 @@ std::string MasterPasswordManager::vectorToString(const std::vector<unsigned cha
 }
 
 // PBKDF2 для derivation ключа
-std::vector<unsigned char> MasterPasswordManager::performPBKDF2(const std::string& password, const std::vector<unsigned char>& salt) {
+std::vector<unsigned char>
+MasterPasswordManager::performPBKDF2(const std::string &password, const std::vector<unsigned char> &salt) {
     std::vector<unsigned char> derived_key(HASH_LENGTH);
 
     if (PKCS5_PBKDF2_HMAC(password.c_str(), password.length(),
@@ -215,7 +217,7 @@ std::vector<unsigned char> MasterPasswordManager::performPBKDF2(const std::strin
 }
 
 // Сравнение с постоянным временем
-bool MasterPasswordManager::constantTimeCompare(const std::string& a, const std::string& b) {
+bool MasterPasswordManager::constantTimeCompare(const std::string &a, const std::string &b) {
     if (a.length() != b.length()) {
         return false;
     }
@@ -236,7 +238,7 @@ std::string MasterPasswordManager::serialize() const {
 }
 
 // Десериализация
-MasterPasswordManager MasterPasswordManager::deserialize(const std::string& data) {
+MasterPasswordManager MasterPasswordManager::deserialize(const std::string &data) {
     std::stringstream ss(data);
     std::string salt_str, hash;
 
@@ -254,4 +256,87 @@ void MasterPasswordManager::clearSensitiveData() {
     std::fill(salt.begin(), salt.end(), 0);
     password_hash.clear();
     salt.clear();
+}
+
+// Проверки сложности пароля
+
+bool MasterPasswordManager::hasMinimumLength(const std::string &password, size_t min_length) {
+    return password.length() >= min_length;
+}
+
+bool MasterPasswordManager::hasUppercase(const std::string &password) {
+    return std::any_of(password.begin(), password.end(), ::isupper);
+}
+
+bool MasterPasswordManager::hasLowercase(const std::string &password) {
+    return std::any_of(password.begin(), password.end(), ::islower);
+}
+
+bool MasterPasswordManager::hasDigits(const std::string &password) {
+    return std::any_of(password.begin(), password.end(), ::isdigit);
+}
+
+bool MasterPasswordManager::hasSpecialChars(const std::string &password) {
+    return std::any_of(password.begin(), password.end(), [](char c) {
+        return !std::isalnum(c) && !std::isspace(c);
+    });
+}
+
+bool MasterPasswordManager::hasNoCommonPatterns(const std::string &password) {
+    // Список common passwords и patterns
+    static const std::vector<std::string> COMMON_PATTERNS = {
+            "password", "123456", "qwerty", "admin", "welcome",
+            "monkey", "letmein", "dragon", "baseball", "iloveyou",
+            "trustno1", "sunshine", "master", "hello", "freedom"
+    };
+
+    std::string lower_password = password;
+    std::transform(lower_password.begin(), lower_password.end(), lower_password.begin(), ::tolower);
+
+    for (const auto &pattern: COMMON_PATTERNS) {
+        if (lower_password.find(pattern) != std::string::npos) {
+            return false;
+        }
+    }
+
+    // Проверка на последовательности
+    for (size_t i = 0; i < password.length() - 2; ++i) {
+        if (std::isalpha(password[i]) && std::isalpha(password[i + 1]) && std::isalpha(password[i + 2])) {
+            // Проверка последовательных букв (abc, def, etc.)
+            if (password[i] + 1 == password[i + 1] && password[i + 1] + 1 == password[i + 2]) {
+                return false;
+            }
+        }
+        if (std::isdigit(password[i]) && std::isdigit(password[i + 1]) && std::isdigit(password[i + 2])) {
+            // Проверка последовательных цифр (123, 456, etc.)
+            if (password[i] + 1 == password[i + 1] && password[i + 1] + 1 == password[i + 2]) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+// Расчет энтропии пароля
+int MasterPasswordManager::calculateEntropy(const std::string &password) {
+    if (password.empty()) return 0;
+
+    // Определяем набор символов
+    bool has_upper = hasUppercase(password);
+    bool has_lower = hasLowercase(password);
+    bool has_digit = hasDigits(password);
+    bool has_special = hasSpecialChars(password);
+
+    int charset_size = 0;
+    if (has_upper) charset_size += 26;
+    if (has_lower) charset_size += 26;
+    if (has_digit) charset_size += 10;
+    if (has_special) charset_size += 32; // Примерное количество специальных символов
+
+    if (charset_size == 0) return 0;
+
+    // Энтропия = log2(charset_size) * length
+    double entropy = std::log2(charset_size) * password.length();
+    return static_cast<int>(entropy);
 }
