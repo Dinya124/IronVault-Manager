@@ -198,3 +198,60 @@ std::vector<unsigned char> MasterPasswordManager::stringToVector(const std::stri
 std::string MasterPasswordManager::vectorToString(const std::vector<unsigned char> &vec) {
     return std::string(vec.begin(), vec.end());
 }
+
+// PBKDF2 для derivation ключа
+std::vector<unsigned char> MasterPasswordManager::performPBKDF2(const std::string& password, const std::vector<unsigned char>& salt) {
+    std::vector<unsigned char> derived_key(HASH_LENGTH);
+
+    if (PKCS5_PBKDF2_HMAC(password.c_str(), password.length(),
+                          salt.data(), salt.size(),
+                          PBKDF2_ITERATIONS,
+                          EVP_sha256(),
+                          HASH_LENGTH, derived_key.data()) != 1) {
+        throw std::runtime_error("Failed to derive key from password");
+    }
+
+    return derived_key;
+}
+
+// Сравнение с постоянным временем
+bool MasterPasswordManager::constantTimeCompare(const std::string& a, const std::string& b) {
+    if (a.length() != b.length()) {
+        return false;
+    }
+
+    unsigned char result = 0;
+    for (size_t i = 0; i < a.length(); ++i) {
+        result |= a[i] ^ b[i];
+    }
+
+    return result == 0;
+}
+
+// Сериализация
+std::string MasterPasswordManager::serialize() const {
+    std::stringstream ss;
+    ss << vectorToString(salt) << "\n" << password_hash;
+    return ss.str();
+}
+
+// Десериализация
+MasterPasswordManager MasterPasswordManager::deserialize(const std::string& data) {
+    std::stringstream ss(data);
+    std::string salt_str, hash;
+
+    std::getline(ss, salt_str);
+    std::getline(ss, hash);
+
+    std::vector<unsigned char> salt_vec = stringToVector(salt_str);
+    return MasterPasswordManager(hash, salt_vec);
+}
+
+// Очистка чувствительных данных
+void MasterPasswordManager::clearSensitiveData() {
+    // Перезаписываем чувствительные данные в памяти
+    std::fill(password_hash.begin(), password_hash.end(), 0);
+    std::fill(salt.begin(), salt.end(), 0);
+    password_hash.clear();
+    salt.clear();
+}
