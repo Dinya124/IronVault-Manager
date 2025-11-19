@@ -61,3 +61,97 @@ bool MasterPasswordManager::verifyPassword(const std::string &password, const st
         return false;
     }
 }
+
+// Установка нового пароля (с проверкой старого)
+bool MasterPasswordManager::setNewPassword(const std::string &old_password, const std::string &new_password) {
+    if (!isPasswordSet()) {
+        // Пароль еще не установлен
+        forceSetNewPassword(new_password);
+        return true;
+    }
+
+    // Проверяем старый пароль
+    if (!verifyPassword(old_password, password_hash)) {
+        return false;
+    }
+
+    // Устанавливаем новый пароль
+    forceSetNewPassword(new_password);
+    return true;
+}
+
+// Принудительная установка нового пароля
+void MasterPasswordManager::forceSetNewPassword(const std::string &new_password) {
+    if (new_password.empty()) {
+        throw std::invalid_argument("New password cannot be empty");
+    }
+
+    if (!isPasswordStrong(new_password)) {
+        throw std::invalid_argument("Password does not meet strength requirements");
+    }
+
+    // Генерируем новую соль и хэшируем пароль
+    salt = generateSalt();
+    password_hash = hashWithSalt(new_password, salt);
+}
+
+// Проверка сложности пароля
+bool MasterPasswordManager::isPasswordStrong(const std::string& password) {
+    return hasMinimumLength(password, 12) &&
+           hasUppercase(password) &&
+           hasLowercase(password) &&
+           hasDigits(password) &&
+           hasSpecialChars(password) &&
+           hasNoCommonPatterns(password) &&
+           calculateEntropy(password) >= 80; // Высокая энтропия
+}
+
+// Получение обратной связи о сложности пароля
+std::string MasterPasswordManager::getPasswordStrengthFeedback(const std::string& password) {
+    std::vector<std::string> feedback;
+
+    if (!hasMinimumLength(password, 12)) {
+        feedback.push_back("Password should be at least 12 characters long");
+    }
+
+    if (!hasUppercase(password)) {
+        feedback.push_back("Password should contain uppercase letters");
+    }
+
+    if (!hasLowercase(password)) {
+        feedback.push_back("Password should contain lowercase letters");
+    }
+
+    if (!hasDigits(password)) {
+        feedback.push_back("Password should contain digits");
+    }
+
+    if (!hasSpecialChars(password)) {
+        feedback.push_back("Password should contain special characters");
+    }
+
+    if (!hasNoCommonPatterns(password)) {
+        feedback.push_back("Password should not contain common patterns or words");
+    }
+
+    int entropy = calculateEntropy(password);
+    if (entropy < 60) {
+        feedback.push_back("Password is too predictable");
+    } else if (entropy < 80) {
+        feedback.push_back("Password could be stronger");
+    }
+
+    if (feedback.empty()) {
+        return "Password is strong";
+    }
+
+    std::string result;
+    for (size_t i = 0; i < feedback.size(); ++i) {
+        result += std::to_string(i + 1) + ". " + feedback[i];
+        if (i < feedback.size() - 1) {
+            result += "\n";
+        }
+    }
+
+    return result;
+}
