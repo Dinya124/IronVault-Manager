@@ -96,7 +96,7 @@ void MasterPasswordManager::forceSetNewPassword(const std::string &new_password)
 }
 
 // Проверка сложности пароля
-bool MasterPasswordManager::isPasswordStrong(const std::string& password) {
+bool MasterPasswordManager::isPasswordStrong(const std::string &password) {
     return hasMinimumLength(password, 12) &&
            hasUppercase(password) &&
            hasLowercase(password) &&
@@ -107,7 +107,7 @@ bool MasterPasswordManager::isPasswordStrong(const std::string& password) {
 }
 
 // Получение обратной связи о сложности пароля
-std::string MasterPasswordManager::getPasswordStrengthFeedback(const std::string& password) {
+std::string MasterPasswordManager::getPasswordStrengthFeedback(const std::string &password) {
     std::vector<std::string> feedback;
 
     if (!hasMinimumLength(password, 12)) {
@@ -154,4 +154,47 @@ std::string MasterPasswordManager::getPasswordStrengthFeedback(const std::string
     }
 
     return result;
+}
+
+// Геттеры
+std::string MasterPasswordManager::getPasswordHash() const {
+    return password_hash;
+}
+
+std::vector<unsigned char> MasterPasswordManager::getSalt() const {
+    return salt;
+}
+
+bool MasterPasswordManager::isPasswordSet() const {
+    return !password_hash.empty();
+}
+
+// Генерация соли
+std::vector<unsigned char> MasterPasswordManager::generateSalt() {
+    std::vector<unsigned char> new_salt(SALT_LENGTH);
+    if (RAND_bytes(new_salt.data(), SALT_LENGTH) != 1) {
+        throw std::runtime_error("Failed to generate salt");
+    }
+    return new_salt;
+}
+
+// Хэширование пароля с солью
+std::string MasterPasswordManager::hashWithSalt(const std::string &password, const std::vector<unsigned char> &salt) {
+    std::vector<unsigned char> derived_key = performPBKDF2(password, salt);
+
+    // Формат: salt:hash (в Base64-like представлении)
+    std::string salt_str = vectorToString(salt);
+    std::string hash_str = vectorToString(derived_key);
+
+    return salt_str + ":" + hash_str;
+}
+
+// Преобразование строки в вектор
+std::vector<unsigned char> MasterPasswordManager::stringToVector(const std::string &str) {
+    return std::vector<unsigned char>(str.begin(), str.end());
+}
+
+// Преобразование вектора в строку
+std::string MasterPasswordManager::vectorToString(const std::vector<unsigned char> &vec) {
+    return std::string(vec.begin(), vec.end());
 }
