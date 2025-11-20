@@ -93,3 +93,20 @@ bool SecureInputBuffer::readFromStdinWithCallback(const std::function<void(size_
         throw;
     }
 }
+// Очистка буфера
+void SecureInputBuffer::clear() {
+    std::fill(buffer.begin(), buffer.end(), 0);
+    position = 0;
+}
+
+// Безопасная очистка (заполнение нулями)
+void SecureInputBuffer::secureClear() {
+    std::fill(buffer.begin(), buffer.end(), 0);
+    position = 0;
+
+    // Дополнительная гарантия очистки
+    for (auto& c : buffer) {
+        c = 0;
+    }
+}
+
