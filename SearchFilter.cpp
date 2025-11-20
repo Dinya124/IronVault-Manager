@@ -193,3 +193,36 @@ void SearchFilter::clear() {
     categories.clear();
     excluded_categories.clear();
 }
+
+void SearchFilter::clearServiceNameQuery() {
+    service_name_query.clear();
+}
+
+void SearchFilter::clearLoginQuery() {
+    login_query.clear();
+}
+
+void SearchFilter::clearUrlQuery() {
+    url_query.clear();
+}
+
+void SearchFilter::clearCategoryQuery() {
+    category_query.clear();
+}
+
+void SearchFilter::clearNotesQuery() {
+    notes_query.clear();
+}
+
+void SearchFilter::clearDateRange() {
+    date_from = 0;
+    date_to = 0;
+}
+
+void SearchFilter::clearCategories() {
+    categories.clear();
+}
+
+void SearchFilter::clearExcludedCategories() {
+    excluded_categories.clear();
+}
