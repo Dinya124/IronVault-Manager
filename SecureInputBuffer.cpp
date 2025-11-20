@@ -294,3 +294,43 @@ void SecureInputBuffer::displayMask(size_t current_size, bool hide_input) const 
         std::cout << std::flush;
     }
 }
+
+// Системно-зависимые методы
+bool SecureInputBuffer::setStdinEcho(bool enable) {
+#ifdef _WIN32
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD mode;
+    if (!GetConsoleMode(hStdin, &mode)) {
+        return false;
+    }
+
+    if (!enable) {
+        mode &= ~ENABLE_ECHO_INPUT;
+    } else {
+        mode |= ENABLE_ECHO_INPUT;
+    }
+
+    return SetConsoleMode(hStdin, mode) != 0;
+#else
+    struct termios tty;
+    if (tcgetattr(STDIN_FILENO, &tty) != 0) {
+        return false;
+    }
+
+    if (!enable) {
+        tty.c_lflag &= ~ECHO;
+    } else {
+        tty.c_lflag |= ECHO;
+    }
+
+    return tcsetattr(STDIN_FILENO, TCSANOW, &tty) == 0;
+#endif
+}
+
+int SecureInputBuffer::getChar() {
+#ifdef _WIN32
+    return _getch();
+#else
+    return getchar();
+#endif
+}
