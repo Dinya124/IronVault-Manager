@@ -110,3 +110,38 @@ void SecureInputBuffer::secureClear() {
     }
 }
 
+// Изменение размера буфера
+void SecureInputBuffer::resize(size_t new_size) {
+    if (new_size > MAX_BUFFER_SIZE) {
+        throw std::invalid_argument("New size exceeds maximum buffer size");
+    }
+
+    secureClear();
+    buffer.resize(new_size);
+    std::fill(buffer.begin(), buffer.end(), 0);
+}
+
+// Получение данных как строки
+std::string SecureInputBuffer::getString() const {
+    return std::string(buffer.data(), position);
+}
+
+// Получение буфера
+std::vector<char> SecureInputBuffer::getBuffer() const {
+    return std::vector<char>(buffer.begin(), buffer.begin() + position);
+}
+
+// Получение размера данных
+size_t SecureInputBuffer::getSize() const {
+    return position;
+}
+
+// Проверка на пустоту
+bool SecureInputBuffer::isEmpty() const {
+    return position == 0;
+}
+
+// Получение емкости буфера
+size_t SecureInputBuffer::getCapacity() const {
+    return buffer.size();
+}
