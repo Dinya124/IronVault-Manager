@@ -78,6 +78,31 @@ public:
     void trimLeft();
 
     void trimRight();
+
+private:
+    // Внутренние методы
+    void initializeBuffer();
+
+    bool growBuffer();
+
+    void handleBackspace();
+
+    void handleCharacter(char c, bool hide_input);
+
+    void displayMask(size_t current_size, bool hide_input) const;
+
+    // Системно-зависимые методы
+    static bool setStdinEcho(bool enable);
+
+    static int getChar();
+
+    // Валидация
+    bool isValidCharacter(char c) const;
+
+    bool isControlCharacter(char c) const;
+
+    // Безопасное копирование
+    void secureCopy(const SecureInputBuffer &other);
 };
 
 
