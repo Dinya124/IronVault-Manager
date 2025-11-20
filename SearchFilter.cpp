@@ -87,7 +87,7 @@ bool SearchFilter::matchesNotes(const CredentialRecord &record) const {
 }
 
 // Проверка соответствия временному диапазону
-bool SearchFilter::matchesDateRange(const CredentialRecord& record) const {
+bool SearchFilter::matchesDateRange(const CredentialRecord &record) const {
     if (date_from == 0 && date_to == 0) {
         return true;
     }
@@ -99,6 +99,23 @@ bool SearchFilter::matchesDateRange(const CredentialRecord& record) const {
     }
 
     if (date_to > 0 && record_time > date_to) {
+        return false;
+    }
+
+    return true;
+}
+
+// Проверка соответствия списку категорий
+bool SearchFilter::matchesCategories(const CredentialRecord &record) const {
+    std::string category = record.getCategory();
+
+    // Проверка включенных категорий
+    if (!categories.empty() && !isInCategories(category)) {
+        return false;
+    }
+
+    // Проверка исключенных категорий
+    if (!excluded_categories.empty() && isExcludedCategory(category)) {
         return false;
     }
 
