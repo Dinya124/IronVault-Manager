@@ -17,3 +17,21 @@ SearchFilter::SearchFilter()
           date_to(0) {
 }
 
+// Основной метод проверки соответствия записи критериям
+bool SearchFilter::matches(const CredentialRecord &record) const {
+    // Если фильтр не активен, все записи подходят
+    if (!isActive()) {
+        return true;
+    }
+
+    // Проверяем все критерии
+    if (!matchesServiceName(record)) return false;
+    if (!matchesLogin(record)) return false;
+    if (!matchesUrl(record)) return false;
+    if (!matchesCategory(record)) return false;
+    if (!matchesNotes(record)) return false;
+    if (!matchesDateRange(record)) return false;
+    if (!matchesCategories(record)) return false;
+
+    return true;
+}
