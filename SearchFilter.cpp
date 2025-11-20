@@ -226,3 +226,28 @@ void SearchFilter::clearCategories() {
 void SearchFilter::clearExcludedCategories() {
     excluded_categories.clear();
 }
+
+// Геттеры
+std::string SearchFilter::getServiceNameQuery() const { return service_name_query; }
+
+std::string SearchFilter::getLoginQuery() const { return login_query; }
+
+std::string SearchFilter::getUrlQuery() const { return url_query; }
+
+std::string SearchFilter::getCategoryQuery() const { return category_query; }
+
+std::string SearchFilter::getNotesQuery() const { return notes_query; }
+
+bool SearchFilter::isCaseSensitive() const { return case_sensitive; }
+
+bool SearchFilter::isExactMatch() const { return exact_match; }
+
+bool SearchFilter::isSearchInNotes() const { return search_in_notes; }
+
+std::time_t SearchFilter::getDateFrom() const { return date_from; }
+
+std::time_t SearchFilter::getDateTo() const { return date_to; }
+
+std::vector<std::string> SearchFilter::getCategories() const { return categories; }
+
+std::vector<std::string> SearchFilter::getExcludedCategories() const { return excluded_categories; }
