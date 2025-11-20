@@ -45,3 +45,13 @@ bool SearchFilter::matchesServiceName(const CredentialRecord &record) const {
     std::string service_name = record.getServiceName();
     return matchesText(service_name, service_name_query);
 }
+
+// Проверка соответствия логина
+bool SearchFilter::matchesLogin(const CredentialRecord &record) const {
+    if (login_query.empty()) {
+        return true;
+    }
+
+    std::string login = record.getLogin();
+    return matchesText(login, login_query);
+}
