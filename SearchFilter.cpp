@@ -274,13 +274,13 @@ bool SearchFilter::hasCategoryFilters() const {
 }
 
 // Статические методы для удобства
-SearchFilter SearchFilter::createServiceFilter(const std::string& service_name) {
+SearchFilter SearchFilter::createServiceFilter(const std::string &service_name) {
     SearchFilter filter;
     filter.setServiceNameQuery(service_name);
     return filter;
 }
 
-SearchFilter SearchFilter::createCategoryFilter(const std::string& category) {
+SearchFilter SearchFilter::createCategoryFilter(const std::string &category) {
     SearchFilter filter;
     filter.setCategoryQuery(category);
     return filter;
@@ -292,7 +292,7 @@ SearchFilter SearchFilter::createDateRangeFilter(std::time_t from, std::time_t t
     return filter;
 }
 
-SearchFilter SearchFilter::createTextSearchFilter(const std::string& text) {
+SearchFilter SearchFilter::createTextSearchFilter(const std::string &text) {
     SearchFilter filter;
     filter.setServiceNameQuery(text);
     filter.setLoginQuery(text);
@@ -301,4 +301,33 @@ SearchFilter SearchFilter::createTextSearchFilter(const std::string& text) {
     filter.setSearchInNotes(true);
     filter.setNotesQuery(text);
     return filter;
+}
+
+// Вспомогательные методы для работы со строками
+std::string SearchFilter::toLower(const std::string &str) const {
+    std::string result = str;
+    std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+    return result;
+}
+
+bool SearchFilter::containsText(const std::string &text, const std::string &query) const {
+    if (case_sensitive) {
+        return text.find(query) != std::string::npos;
+    } else {
+        std::string text_lower = toLower(text);
+        std::string query_lower = toLower(query);
+        return text_lower.find(query_lower) != std::string::npos;
+    }
+}
+
+bool SearchFilter::matchesText(const std::string &text, const std::string &query) const {
+    if (exact_match) {
+        if (case_sensitive) {
+            return text == query;
+        } else {
+            return toLower(text) == toLower(query);
+        }
+    } else {
+        return containsText(text, query);
+    }
 }
