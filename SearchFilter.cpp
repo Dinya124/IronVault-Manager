@@ -251,3 +251,24 @@ std::time_t SearchFilter::getDateTo() const { return date_to; }
 std::vector<std::string> SearchFilter::getCategories() const { return categories; }
 
 std::vector<std::string> SearchFilter::getExcludedCategories() const { return excluded_categories; }
+
+// Проверка активности фильтров
+bool SearchFilter::isActive() const {
+    return hasTextFilters() || hasDateFilters() || hasCategoryFilters();
+}
+
+bool SearchFilter::hasTextFilters() const {
+    return !service_name_query.empty() ||
+           !login_query.empty() ||
+           !url_query.empty() ||
+           !category_query.empty() ||
+           (!notes_query.empty() && search_in_notes);
+}
+
+bool SearchFilter::hasDateFilters() const {
+    return date_from > 0 || date_to > 0;
+}
+
+bool SearchFilter::hasCategoryFilters() const {
+    return !categories.empty() || !excluded_categories.empty();
+}
