@@ -272,3 +272,33 @@ bool SearchFilter::hasDateFilters() const {
 bool SearchFilter::hasCategoryFilters() const {
     return !categories.empty() || !excluded_categories.empty();
 }
+
+// Статические методы для удобства
+SearchFilter SearchFilter::createServiceFilter(const std::string& service_name) {
+    SearchFilter filter;
+    filter.setServiceNameQuery(service_name);
+    return filter;
+}
+
+SearchFilter SearchFilter::createCategoryFilter(const std::string& category) {
+    SearchFilter filter;
+    filter.setCategoryQuery(category);
+    return filter;
+}
+
+SearchFilter SearchFilter::createDateRangeFilter(std::time_t from, std::time_t to) {
+    SearchFilter filter;
+    filter.setDateRange(from, to);
+    return filter;
+}
+
+SearchFilter SearchFilter::createTextSearchFilter(const std::string& text) {
+    SearchFilter filter;
+    filter.setServiceNameQuery(text);
+    filter.setLoginQuery(text);
+    filter.setUrlQuery(text);
+    filter.setCategoryQuery(text);
+    filter.setSearchInNotes(true);
+    filter.setNotesQuery(text);
+    return filter;
+}
