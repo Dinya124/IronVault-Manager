@@ -55,3 +55,13 @@ bool SearchFilter::matchesLogin(const CredentialRecord &record) const {
     std::string login = record.getLogin();
     return matchesText(login, login_query);
 }
+
+// Проверка соответствия URL
+bool SearchFilter::matchesUrl(const CredentialRecord &record) const {
+    if (url_query.empty()) {
+        return true;
+    }
+
+    std::string url = record.getUrl();
+    return matchesText(url, url_query);
+}
