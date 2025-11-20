@@ -157,3 +157,25 @@ void SearchFilter::setDateTo(std::time_t to) {
     date_to = to;
 }
 
+// Сеттеры для категорий
+void SearchFilter::setCategories(const std::vector<std::string> &categories_list) {
+    categories = categories_list;
+}
+
+void SearchFilter::setExcludedCategories(const std::vector<std::string> &excluded_list) {
+    excluded_categories = excluded_list;
+}
+
+void SearchFilter::addCategory(const std::string &category) {
+    if (!category.empty()) {
+        categories.push_back(category);
+    }
+}
+
+void SearchFilter::addExcludedCategory(const std::string &category) {
+    if (!category.empty()) {
+        excluded_categories.push_back(category);
+    }
+}
+
+
