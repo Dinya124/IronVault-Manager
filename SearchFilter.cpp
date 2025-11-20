@@ -85,3 +85,22 @@ bool SearchFilter::matchesNotes(const CredentialRecord &record) const {
     std::string notes = record.getNotes();
     return matchesText(notes, notes_query);
 }
+
+// Проверка соответствия временному диапазону
+bool SearchFilter::matchesDateRange(const CredentialRecord& record) const {
+    if (date_from == 0 && date_to == 0) {
+        return true;
+    }
+
+    std::time_t record_time = record.getLastModified();
+
+    if (date_from > 0 && record_time < date_from) {
+        return false;
+    }
+
+    if (date_to > 0 && record_time > date_to) {
+        return false;
+    }
+
+    return true;
+}
