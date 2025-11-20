@@ -334,3 +334,21 @@ int SecureInputBuffer::getChar() {
     return getchar();
 #endif
 }
+
+// Валидация символов
+bool SecureInputBuffer::isValidCharacter(char c) const {
+    // Разрешаем печатные символы ASCII и некоторые специальные
+    return (c >= 32 && c <= 126) || (c >= -128 && c < 0); // UTF-8 часть
+}
+
+bool SecureInputBuffer::isControlCharacter(char c) const {
+    return (c >= 0 && c <= 31) || c == 127;
+}
+
+// Безопасное копирование
+void SecureInputBuffer::secureCopy(const SecureInputBuffer &other) {
+    buffer = other.buffer;
+    position = other.position;
+    echo_enabled = other.echo_enabled;
+    mask_char = other.mask_char;
+}
