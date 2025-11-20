@@ -75,3 +75,13 @@ bool SearchFilter::matchesCategory(const CredentialRecord &record) const {
     std::string category = record.getCategory();
     return matchesText(category, category_query);
 }
+
+// Проверка соответствия заметок
+bool SearchFilter::matchesNotes(const CredentialRecord &record) const {
+    if (notes_query.empty() || !search_in_notes) {
+        return true;
+    }
+
+    std::string notes = record.getNotes();
+    return matchesText(notes, notes_query);
+}
