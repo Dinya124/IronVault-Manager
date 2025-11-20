@@ -210,3 +210,29 @@ void SecureInputBuffer::secureStringClear(std::string& str) {
         str.clear();
     }
 }
+
+// Утилиты
+void SecureInputBuffer::trim() {
+    trimLeft();
+    trimRight();
+}
+
+void SecureInputBuffer::trimLeft() {
+    size_t start = 0;
+    while (start < position && std::isspace(buffer[start])) {
+        start++;
+    }
+
+    if (start > 0) {
+        std::copy(buffer.begin() + start, buffer.begin() + position, buffer.begin());
+        position -= start;
+        std::fill(buffer.begin() + position, buffer.end(), 0);
+    }
+}
+
+void SecureInputBuffer::trimRight() {
+    while (position > 0 && std::isspace(buffer[position - 1])) {
+        position--;
+        buffer[position] = 0;
+    }
+}
