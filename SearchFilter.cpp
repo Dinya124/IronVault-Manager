@@ -65,3 +65,13 @@ bool SearchFilter::matchesUrl(const CredentialRecord &record) const {
     std::string url = record.getUrl();
     return matchesText(url, url_query);
 }
+
+// Проверка соответствия категории
+bool SearchFilter::matchesCategory(const CredentialRecord &record) const {
+    if (category_query.empty()) {
+        return true;
+    }
+
+    std::string category = record.getCategory();
+    return matchesText(category, category_query);
+}
