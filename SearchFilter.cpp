@@ -121,3 +121,25 @@ bool SearchFilter::matchesCategories(const CredentialRecord &record) const {
 
     return true;
 }
+
+// Сеттеры для критериев поиска
+void SearchFilter::setServiceNameQuery(const std::string &query) {
+    service_name_query = query;
+}
+
+void SearchFilter::setLoginQuery(const std::string &query) {
+    login_query = query;
+}
+
+void SearchFilter::setUrlQuery(const std::string &query) {
+    url_query = query;
+}
+
+void SearchFilter::setCategoryQuery(const std::string &query) {
+    category_query = query;
+}
+
+void SearchFilter::setNotesQuery(const std::string &query) {
+    notes_query = query;
+}
+
