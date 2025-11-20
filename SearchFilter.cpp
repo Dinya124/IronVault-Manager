@@ -143,3 +143,17 @@ void SearchFilter::setNotesQuery(const std::string &query) {
     notes_query = query;
 }
 
+// Сеттеры для временного диапазона
+void SearchFilter::setDateRange(std::time_t from, std::time_t to) {
+    date_from = from;
+    date_to = to;
+}
+
+void SearchFilter::setDateFrom(std::time_t from) {
+    date_from = from;
+}
+
+void SearchFilter::setDateTo(std::time_t to) {
+    date_to = to;
+}
+
