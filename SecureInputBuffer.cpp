@@ -29,3 +29,67 @@ SecureInputBuffer::SecureInputBuffer(size_t initial_size)
     buffer.resize(initial_size);
     std::fill(buffer.begin(), buffer.end(), 0);
 }
+
+
+// Основной метод чтения из stdin
+bool SecureInputBuffer::readFromStdin(bool hide_input) {
+    return readFromStdinWithCallback(nullptr, hide_input);
+}
+
+// Чтение с callback для прогресса
+bool SecureInputBuffer::readFromStdinWithCallback(const std::function<void(size_t, size_t)>& callback, bool hide_input) {
+    clear();
+
+    // Сохраняем текущие настройки терминала
+    bool original_echo = setStdinEcho(false);
+
+    try {
+        std::cout.flush();
+
+        while (true) {
+            int ch = getChar();
+            if (ch == EOF) {
+                break;
+            }
+
+            char c = static_cast<char>(ch);
+
+            // Обработка специальных символов
+            if (c == ENTER) {
+                std::cout << std::endl;
+                break;
+            }
+            else if (c == BACKSPACE) {
+                handleBackspace();
+            }
+            else if (c == CTRL_C || c == CTRL_D) {
+                secureClear();
+                setStdinEcho(original_echo);
+                return false; // Прервано пользователем
+            }
+            else if (isValidCharacter(c)) {
+                handleCharacter(c, hide_input);
+            }
+
+            // Вызываем callback если предоставлен
+            if (callback) {
+                callback(position, buffer.size());
+            }
+
+            // Проверяем не превысили ли максимальный размер
+            if (exceedsMaxSize()) {
+                secureClear();
+                throw std::runtime_error("Input exceeds maximum allowed size");
+            }
+        }
+
+        // Восстанавливаем настройки терминала
+        setStdinEcho(original_echo);
+
+        return true;
+
+    } catch (const std::exception& e) {
+        setStdinEcho(original_echo);
+        throw;
+    }
+}
