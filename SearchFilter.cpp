@@ -331,3 +331,32 @@ bool SearchFilter::matchesText(const std::string &text, const std::string &query
         return containsText(text, query);
     }
 }
+
+// Вспомогательные методы для работы с категориями
+bool SearchFilter::isInCategories(const std::string &category) const {
+    if (case_sensitive) {
+        return std::find(categories.begin(), categories.end(), category) != categories.end();
+    } else {
+        std::string category_lower = toLower(category);
+        for (const auto &cat: categories) {
+            if (toLower(cat) == category_lower) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+bool SearchFilter::isExcludedCategory(const std::string &category) const {
+    if (case_sensitive) {
+        return std::find(excluded_categories.begin(), excluded_categories.end(), category) != excluded_categories.end();
+    } else {
+        std::string category_lower = toLower(category);
+        for (const auto &cat: excluded_categories) {
+            if (toLower(cat) == category_lower) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
