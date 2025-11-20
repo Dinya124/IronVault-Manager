@@ -186,3 +186,27 @@ bool SecureInputBuffer::isValidUtf8() const {
     }
     return true;
 }
+
+// Статические методы
+std::string SecureInputBuffer::readSecureString(bool hide_input) {
+    SecureInputBuffer buffer;
+    if (buffer.readFromStdin(hide_input)) {
+        return buffer.getString();
+    }
+    return "";
+}
+
+std::string SecureInputBuffer::readSecureStringWithSize(size_t max_size, bool hide_input) {
+    SecureInputBuffer buffer(max_size);
+    if (buffer.readFromStdin(hide_input)) {
+        return buffer.getString();
+    }
+    return "";
+}
+
+void SecureInputBuffer::secureStringClear(std::string& str) {
+    if (!str.empty()) {
+        std::fill(str.begin(), str.end(), 0);
+        str.clear();
+    }
+}
