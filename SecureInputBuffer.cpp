@@ -204,7 +204,7 @@ std::string SecureInputBuffer::readSecureStringWithSize(size_t max_size, bool hi
     return "";
 }
 
-void SecureInputBuffer::secureStringClear(std::string& str) {
+void SecureInputBuffer::secureStringClear(std::string &str) {
     if (!str.empty()) {
         std::fill(str.begin(), str.end(), 0);
         str.clear();
@@ -234,5 +234,63 @@ void SecureInputBuffer::trimRight() {
     while (position > 0 && std::isspace(buffer[position - 1])) {
         position--;
         buffer[position] = 0;
+    }
+}
+
+// Приватные методы
+
+void SecureInputBuffer::initializeBuffer() {
+    buffer.resize(DEFAULT_BUFFER_SIZE);
+    std::fill(buffer.begin(), buffer.end(), 0);
+}
+
+bool SecureInputBuffer::growBuffer() {
+    if (buffer.size() >= MAX_BUFFER_SIZE) {
+        return false;
+    }
+
+    size_t new_size = std::min(buffer.size() * 2, MAX_BUFFER_SIZE);
+    buffer.resize(new_size);
+    std::fill(buffer.begin() + position, buffer.end(), 0);
+    return true;
+}
+
+void SecureInputBuffer::handleBackspace() {
+    if (position > 0) {
+        position--;
+        buffer[position] = 0;
+
+        if (echo_enabled) {
+            std::cout << "\b \b" << std::flush;
+        }
+    }
+}
+
+void SecureInputBuffer::handleCharacter(char c, bool hide_input) {
+    if (position >= buffer.size() - 1) {
+        if (!growBuffer()) {
+            throw std::runtime_error("Buffer full");
+        }
+    }
+
+    buffer[position++] = c;
+    buffer[position] = 0;
+
+    if (echo_enabled) {
+        if (hide_input) {
+            std::cout << mask_char << std::flush;
+        } else {
+            std::cout << c << std::flush;
+        }
+    }
+}
+
+void SecureInputBuffer::displayMask(size_t current_size, bool hide_input) const {
+    if (echo_enabled && hide_input) {
+        std::cout << "\r";
+        for (size_t i = 0; i < current_size; ++i) {
+            std::cout << mask_char;
+        }
+        std::cout << std::flush;
     }
 }
