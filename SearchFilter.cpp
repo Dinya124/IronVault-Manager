@@ -178,4 +178,18 @@ void SearchFilter::addExcludedCategory(const std::string &category) {
     }
 }
 
-
+// Очистка критериев
+void SearchFilter::clear() {
+    service_name_query.clear();
+    login_query.clear();
+    url_query.clear();
+    category_query.clear();
+    notes_query.clear();
+    case_sensitive = false;
+    exact_match = false;
+    search_in_notes = false;
+    date_from = 0;
+    date_to = 0;
+    categories.clear();
+    excluded_categories.clear();
+}
