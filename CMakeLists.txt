@@ -9,3 +9,9 @@ add_executable(IronVault_Manager main.cpp
 
 find_package(OpenSSL CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+add_executable(IronVault_Manager main.cpp
+        PasswordGenerator.cpp
+        PasswordGenerator.h)
+
+
+
