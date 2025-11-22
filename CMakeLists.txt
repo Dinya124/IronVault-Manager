@@ -21,3 +21,6 @@ add_executable(IronVault_Manager main.cpp
 add_executable(IronVault_Manager main.cpp
         SecureInputBuffer.cpp
         SecureInputBuffer.h)
+add_executable(IronVault_Manager main.cpp
+        "CredentialRecord .cpp"
+        "CredentialRecord .h")
