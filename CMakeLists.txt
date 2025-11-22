@@ -24,3 +24,10 @@ add_executable(IronVault_Manager main.cpp
 add_executable(IronVault_Manager main.cpp
         "CredentialRecord .cpp"
         "CredentialRecord .h")
+add_executable(IronVault_Manager main.cpp
+        "DataEncryption .cpp"
+        "DataEncryption .h")
+
+find_package(OpenSSL CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+
