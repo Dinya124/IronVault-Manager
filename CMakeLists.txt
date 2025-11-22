@@ -15,3 +15,6 @@ add_executable(IronVault_Manager main.cpp
 
 
 
+add_executable(IronVault_Manager main.cpp
+        SearchFilter.cpp
+        SearchFilter.h)
