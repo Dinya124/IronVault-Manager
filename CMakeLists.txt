@@ -15,10 +15,10 @@ add_executable(IronVault-Manager main.cpp
         SearchFilter.h
         SecureInputBuffer.cpp
         SecureInputBuffer.h
-        DataEncryption .cpp
-        DataEncryption .h
-        CredentialRecord .cpp
-        CredentialRecord .h)
+        DataEncryption.cpp
+        DataEncryption.h
+        CredentialRecord.cpp
+        CredentialRecord.h)
 
 
 
