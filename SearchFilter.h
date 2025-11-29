@@ -1,7 +1,7 @@
 #ifndef IRONVAULT_MANAGER_SEARCHFILTER_H
 #define IRONVAULT_MANAGER_SEARCHFILTER_H
 
-#include "CredentialRecord .h"
+#include "CredentialRecord.h"
 #include <string>
 #include <vector>
 #include <memory>
