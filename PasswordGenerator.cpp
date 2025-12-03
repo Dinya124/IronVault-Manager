@@ -17,6 +17,15 @@ PasswordGenerator::PasswordGenerator(int len, bool uppercase, bool lowercase,
     validateSettings();
 }
 
+std::string PasswordGenerator::getAllAvailableChars() const {
+    std::string chars;
+    if (use_uppercase) chars += getUpperChars();
+    if (use_lowercase) chars += getLowercaseChars();
+    if (use_digits) chars += getDigitChars();
+    if (use_special_chars) chars += getSpecialCharsSet();
+    return chars;
+}
+
 // Основной метод генерации пароля
 std::string PasswordGenerator::generate() {
     validateSettings();
@@ -73,6 +82,8 @@ bool PasswordGenerator::getLowercase() const { return use_lowercase; }
 bool PasswordGenerator::getDigits() const { return use_digits; }
 
 bool PasswordGenerator::getSpecialChars() const { return use_special_chars; }
+
+
 
 //Вспомогательные методы
 std::string PasswordGenerator::getUpperChars() const {

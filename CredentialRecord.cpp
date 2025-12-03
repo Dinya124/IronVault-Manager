@@ -2,6 +2,7 @@
 #include "sstream"
 #include "iomanip"
 #include "stdexcept"
+#include "DataEncryption.h"
 
 //Конструктор
 CredentialRecord::CredentialRecord()
@@ -85,7 +86,9 @@ std::string CredentialRecord::getCategory() const { return category; }
 
 std::string CredentialRecord::getInternalKey() const { return internal_key; }
 
-std::string CredentialRecord::getLastModified() const { return last_modified; }
+std::time_t CredentialRecord::getLastModified() const {
+    return last_modified;
+}
 
 // Проверка на путсую запсь
 bool CredentialRecord::isEmpty() const {

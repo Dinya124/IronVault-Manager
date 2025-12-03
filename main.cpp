@@ -1,465 +1,278 @@
 #include <iostream>
+#include <string>
+#include <vector>
+#include <limits>
 #include <iomanip>
-#include <ctime>
 
-// Подключаем ВСЕ необходимые заголовочные файлы
-#include "PasswordGenerator.h"
-#include "DataEncryption.h"
-#include "CredentialRecord.h"
+// Подключаем ваши заголовочные файлы
 #include "CredentialVault.h"
+#include "CredentialRecord.h"
 #include "SecureInputBuffer.h"
-#include "MasterPasswordManager.h"
 #include "SearchFilter.h"
+#include "PasswordGenerator.h"
 
-// Функция для отображения меню
-void displayMainMenu() {
-    std::cout << "\n=== IronVault Password Manager ===" << std::endl;
-    std::cout << "1. Add new credential" << std::endl;
-    std::cout << "2. View all credentials" << std::endl;
-    std::cout << "3. Search credentials" << std::endl;
-    std::cout << "4. Generate password" << std::endl;
-    std::cout << "5. Change master password" << std::endl;
-    std::cout << "6. Vault statistics" << std::endl;
-    std::cout << "7. Lock vault" << std::endl;
-    std::cout << "8. Data Encryption Demo" << std::endl;
-    std::cout << "0. Exit" << std::endl;
-    std::cout << "Choose option: ";
+// Утилита для очистки потока ввода (чтобы getline не считывал пустую строку после cin)
+void clearInputBuffer() {
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
-// Функция для отображения записи
-void displayCredential(const CredentialRecord& record, bool show_password = false) {
-    std::cout << "\n--- " << record.getServiceName() << " ---" << std::endl;
-    std::cout << "URL: " << (record.getUrl().empty() ? "N/A" : record.getUrl()) << std::endl;
-    std::cout << "Login: " << record.getLogin() << std::endl;
-    if (show_password) {
-        std::cout << "Password: [ENCRYPTED]" << std::endl;
-    }
-    std::cout << "Category: " << record.getCategory() << std::endl;
-
-    std::time_t modified = record.getLastModified();
-    std::cout << "Last modified: " << std::ctime(&modified);
+// Утилита для паузы
+void pauseConsole() {
+    std::cout << "\nНажмите Enter, чтобы продолжить...";
+    std::cin.get();
 }
 
-// Демонстрация работы PasswordGenerator
-void demonstratePasswordGenerator() {
-    std::cout << "\n=== Password Generator Detailed Demo ===" << std::endl;
-
-    PasswordGenerator generator;
-
-    std::cout << "Default settings (16 chars, all types): " << std::endl;
-    for (int i = 0; i < 3; i++) {
-        std::cout << "  " << generator.generate() << std::endl;
-    }
-
-    generator.setLength(12);
-    generator.setSpecialChars(false);
-    std::cout << "\n12 chars, no special: " << generator.generate() << std::endl;
-
-    generator.setLength(8);
-    generator.setUppercase(false);
-    generator.setLowercase(true);
-    generator.setDigits(true);
-    generator.setSpecialChars(false);
-    std::cout << "8 chars, lowercase+digits: " << generator.generate() << std::endl;
-
-    generator.setLength(20);
-    generator.setUppercase(true);
-    generator.setLowercase(true);
-    generator.setDigits(true);
-    generator.setSpecialChars(true);
-    std::cout << "20 chars, all types (strong): " << generator.generate() << std::endl;
+// Функция для вывода заголовка
+void printHeader() {
+    // Очистка экрана (системно-зависимая, для простоты просто отступы)
+    std::cout << "\n\n========================================\n";
+    std::cout << "      IRON VAULT PASSWORD MANAGER       \n";
+    std::cout << "========================================\n";
 }
 
-// Демонстрация работы DataEncryption
-void demonstrateDataEncryption() {
-    std::cout << "\n=== Data Encryption Demo ===" << std::endl;
+// Функция для вывода одной записи (без пароля)
+void printRecordSummary(const CredentialRecord& record) {
+    std::cout << "Service: " << std::left << std::setw(20) << record.getServiceName()
+              << " | Login: " << std::left << std::setw(20) << record.getLogin()
+              << " | Category: " << record.getCategory() << "\n";
+}
 
+// Функция просмотра деталей записи (с расшифровкой)
+void viewRecordDetails(const CredentialRecord& record, const std::string& masterPassword) {
+    std::cout << "\n--- Детали записи ---\n";
+    std::cout << "Сервис:    " << record.getServiceName() << "\n";
+    std::cout << "URL:       " << record.getUrl() << "\n";
+    std::cout << "Логин:     " << record.getLogin() << "\n";
+    std::cout << "Категория: " << record.getCategory() << "\n";
+
+    std::cout << "Пароль:    ";
     try {
-        std::string password = "my_strong_master_password";
-        std::string sensitive_data = "This is my secret password: SuperSecret123!";
-
-        std::cout << "Original data: " << sensitive_data << std::endl;
-
-        // Шифрование данных
-        std::string encrypted = DataEncryption::encrypt(sensitive_data, password);
-        std::cout << "Encrypted data: " << encrypted << std::endl;
-
-        // Дешифрование данных
-        std::string decrypted = DataEncryption::decrypt(encrypted, password);
-        std::cout << "Decrypted data: " << decrypted << std::endl;
-
-        // Проверка целостности
-        bool integrity_ok = DataEncryption::verifyIntegrity(encrypted, password);
-        std::cout << "Data integrity: " << (integrity_ok ? "OK" : "CORRUPTED") << std::endl;
-
-        // Попытка дешифрования с неправильным паролем
-        try {
-            std::string wrong_decrypted = DataEncryption::decrypt(encrypted, "wrong_password");
-            std::cout << "This should not happen!" << std::endl;
-        } catch (const std::exception& e) {
-            std::cout << " Correctly failed with wrong password: " << e.what() << std::endl;
-        }
-
+        // Здесь используем мастер-пароль для расшифровки конкретной записи
+        std::string decrypted = record.getPassword(masterPassword);
+        std::cout << decrypted << "\n";
     } catch (const std::exception& e) {
-        std::cerr << "Encryption error: " << e.what() << std::endl;
+        std::cout << "[ОШИБКА РАСШИФРОВКИ]\n";
     }
+
+    // Форматирование времени
+    std::time_t t = record.getLastModified();
+    std::cout << "Изменено:  " << std::ctime(&t);
+    std::cout << "---------------------\n";
 }
 
-// Демонстрация работы CredentialRecord
-void demonstrateCredentialRecord() {
-    std::cout << "\n=== Credential Record Demo ===" << std::endl;
+// Меню добавления записи
+void handleAddRecord(CredentialVault& vault, const std::string& masterPassword) {
+    std::string service, login, url, category, password;
 
-    // Создание записей
-    CredentialRecord record1("Google", "https://google.com", "user@gmail.com", "encrypted_pass1", "Email");
-    CredentialRecord record2("GitHub", "https://github.com", "developer", "encrypted_pass2", "Development");
+    std::cout << "\n--- Добавление новой записи ---\n";
 
-    std::cout << "Record 1:" << std::endl;
-    std::cout << record1.toString() << std::endl;
+    std::cout << "Введите название сервиса: ";
+    std::getline(std::cin, service);
 
-    std::cout << "Record 2:" << std::endl;
-    std::cout << record2.toString() << std::endl;
+    std::cout << "Введите URL (необязательно): ";
+    std::getline(std::cin, url);
 
-    // Тестирование сериализации
-    std::string serialized = record1.serialize();
-    std::cout << "Serialized data:\n" << serialized << std::endl;
+    std::cout << "Введите логин: ";
+    std::getline(std::cin, login);
 
-    CredentialRecord restored = CredentialRecord::deserialize(serialized);
-    std::cout << "Restored record:\n" << restored.toString() << std::endl;
+    std::cout << "Введите категорию (Enter для 'General'): ";
+    std::getline(std::cin, category);
 
-    // Тестирование методов доступа
-    std::cout << "Service name: " << record1.getServiceName() << std::endl;
-    std::cout << "Login: " << record1.getLogin() << std::endl;
-    std::cout << "Category: " << record1.getCategory() << std::endl;
-    std::cout << "URL: " << record1.getUrl() << std::endl;
-}
+    std::cout << "Сгенерировать пароль? (y/n): ";
+    char choice;
+    std::cin >> choice;
+    clearInputBuffer();
 
-// Функция добавления новой учетной записи
-void addNewCredential(CredentialVault& vault) {
-    std::cout << "\n=== Add New Credential ===" << std::endl;
+    if (choice == 'y' || choice == 'Y') {
+        // Используем встроенный генератор
+        password = vault.generatePassword(16, true, true, true, true);
+        std::cout << "Сгенерированный пароль: " << password << "\n";
+    } else {
+        std::cout << "Введите пароль: ";
+        // Используем SecureInputBuffer для скрытия ввода пароля при создании
+        password = SecureInputBuffer::readSecureString();
+        std::cout << "\n";
+    }
+
+    // Шифруем пароль перед созданием объекта (CredentialRecord хранит уже зашифрованный)
+    // ВАЖНО: Согласно вашей логике, CredentialRecord принимает уже зашифрованный пароль в конструкторе?
+    // Проверим CredentialRecord.cpp. Конструктор принимает encrypted_password.
+    // Значит, нам нужно зашифровать его здесь.
 
     try {
-        std::string service_name, url, login, category;
+        // Шифруем сырой пароль, используя мастер-пароль
+        std::string encryptedPass = DataEncryption::encrypt(password, masterPassword);
 
-        std::cout << "Service name: ";
-        std::getline(std::cin, service_name);
+        CredentialRecord newRecord(service, url, login, encryptedPass, category);
 
-        std::cout << "URL (optional): ";
-        std::getline(std::cin, url);
-
-        std::cout << "Login: ";
-        std::getline(std::cin, login);
-
-        std::cout << "Category (default: General): ";
-        std::getline(std::cin, category);
-        if (category.empty()) category = "General";
-
-        // Генерация пароля с помощью PasswordGenerator
-        std::cout << "\nGenerate password? (y/n): ";
-        char choice;
-        std::cin >> choice;
-        std::cin.ignore();
-
-        std::string password;
-        if (choice == 'y' || choice == 'Y') {
-            password = vault.generatePassword(16, true, true, true, true);
-            std::cout << "Generated password: " << password << std::endl;
+        if (vault.addRecord(newRecord)) {
+            std::cout << "Запись успешно добавлена!\n";
         } else {
-            std::cout << "Enter password: ";
-            password = SecureInputBuffer::readSecureString(true);
+            std::cout << "Ошибка добавления записи (возможно, имя сервиса занято).\n";
         }
-
-        // Шифрование пароля с помощью DataEncryption
-        std::string encrypted_password;
-        try {
-            encrypted_password = DataEncryption::encrypt(password, "demo_master_key");
-            std::cout << "Password encrypted successfully" << std::endl;
-        } catch (const std::exception& e) {
-            std::cerr << "Encryption failed: " << e.what() << std::endl;
-            encrypted_password = "encryption_failed";
-        }
-
-        // Создание записи с помощью CredentialRecord
-        CredentialRecord record(service_name, url, login, encrypted_password, category);
-
-        if (vault.addRecord(record)) {
-            std::cout << "Credential added successfully!" << std::endl;
-        } else {
-            std::cout << "Failed to add credential" << std::endl;
-        }
-
     } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        std::cout << "Ошибка: " << e.what() << "\n";
     }
 }
 
-// Функция просмотра всех учетных записей
-void viewAllCredentials(CredentialVault& vault) {
-    std::cout << "\n=== All Credentials ===" << std::endl;
+// Меню поиска
+void handleSearch(CredentialVault& vault, const std::string& masterPassword) {
+    std::cout << "\nВведите поисковый запрос (сервис, логин или категория): ";
+    std::string query;
+    std::getline(std::cin, query);
 
-    try {
-        auto records = vault.getAllRecords();
+    // Используем ваш SearchFilter
+    SearchFilter filter = SearchFilter::createTextSearchFilter(query);
 
-        if (records.empty()) {
-            std::cout << "No credentials found." << std::endl;
-            return;
+    std::vector<CredentialRecord> results = vault.searchRecords(filter);
+
+    if (results.empty()) {
+        std::cout << "Ничего не найдено.\n";
+        return;
+    }
+
+    std::cout << "\nНайдено записей: " << results.size() << "\n";
+    for (size_t i = 0; i < results.size(); ++i) {
+        std::cout << i + 1 << ". ";
+        printRecordSummary(results[i]);
+    }
+
+    std::cout << "\nВведите номер записи для просмотра пароля (0 для отмены): ";
+    int choice;
+    if (!(std::cin >> choice)) {
+        std::cin.clear();
+        clearInputBuffer();
+        return;
+    }
+    clearInputBuffer();
+
+    if (choice > 0 && choice <= static_cast<int>(results.size())) {
+        // Получаем оригинальную запись из хранилища по имени сервиса,
+        // чтобы убедиться, что работаем с актуальными данными
+        std::string serviceName = results[choice - 1].getServiceName();
+        CredentialRecord* record = vault.findRecord(serviceName);
+        if (record) {
+            viewRecordDetails(*record, masterPassword);
         }
-
-        std::cout << "Total: " << records.size() << " credentials" << std::endl;
-
-        for (const auto& record : records) {
-            displayCredential(record, false);
-
-            // Демонстрация дешифрования пароля
-            try {
-                std::string decrypted_password = DataEncryption::decrypt(
-                        record.getEncryptedPassword(), "demo_master_key");
-                std::cout << "Decrypted password: " << decrypted_password << std::endl;
-            } catch (const std::exception& e) {
-                std::cout << "Password: [DECRYPTION FAILED]" << std::endl;
-            }
-        }
-
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
     }
 }
 
-// Функция поиска учетных записей
-void searchCredentials(CredentialVault& vault) {
-    std::cout << "\n=== Search Credentials ===" << std::endl;
-
-    try {
-        SearchFilter filter;
-        std::string query;
-
-        std::cout << "Search in service names: ";
-        std::getline(std::cin, query);
-        if (!query.empty()) {
-            filter.setServiceNameQuery(query);
-        }
-
-        std::cout << "Search in logins: ";
-        std::getline(std::cin, query);
-        if (!query.empty()) {
-            filter.setLoginQuery(query);
-        }
-
-        std::cout << "Search in URLs: ";
-        std::getline(std::cin, query);
-        if (!query.empty()) {
-            filter.setUrlQuery(query);
-        }
-
-        std::cout << "Search in categories: ";
-        std::getline(std::cin, query);
-        if (!query.empty()) {
-            filter.setCategoryQuery(query);
-        }
-
-        auto results = vault.searchRecords(filter);
-
-        std::cout << "\nSearch results: " << results.size() << " found" << std::endl;
-
-        for (const auto& record : results) {
-            displayCredential(record, false);
-        }
-
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-}
-
-// Функция генерации пароля
-void generatePasswordDemo(CredentialVault& vault) {
-    std::cout << "\n=== Password Generator ===" << std::endl;
-
-    try {
-        demonstratePasswordGenerator();
-
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-}
-
-// Функция смены мастер-пароля
-void changeMasterPassword(CredentialVault& vault) {
-    std::cout << "\n=== Change Master Password ===" << std::endl;
-
-    try {
-        std::cout << "Enter current master password: ";
-        std::string current_password = SecureInputBuffer::readSecureString(true);
-
-        std::cout << "Enter new master password: ";
-        std::string new_password = SecureInputBuffer::readSecureString(true);
-
-        std::cout << "Confirm new master password: ";
-        std::string confirm_password = SecureInputBuffer::readSecureString(true);
-
-        if (new_password != confirm_password) {
-            std::cout << "✗ Passwords do not match!" << std::endl;
-            return;
-        }
-
-        // Проверка сложности пароля с помощью MasterPasswordManager
-        std::string strength_feedback = MasterPasswordManager::getPasswordStrengthFeedback(new_password);
-        std::cout << "\nPassword strength analysis:\n" << strength_feedback << std::endl;
-
-        if (!MasterPasswordManager::isPasswordStrong(new_password)) {
-            std::cout << "⚠️  Password is weak. Continue anyway? (y/n): ";
-            char choice;
-            std::cin >> choice;
-            std::cin.ignore();
-
-            if (choice != 'y' && choice != 'Y') {
-                std::cout << "Password change cancelled." << std::endl;
-                return;
-            }
-        }
-
-        // Демонстрация хэширования пароля
-        std::string password_hash = MasterPasswordManager::hashPassword(new_password);
-        std::cout << "✓ Password hashed successfully (hash length: " << password_hash.length() << ")" << std::endl;
-
-        std::cout << "✓ Master password changed successfully!" << std::endl;
-
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-}
-
-// Функция отображения статистики
-void showVaultStatistics(CredentialVault& vault) {
-    std::cout << "\n=== Vault Statistics ===" << std::endl;
-
-    try {
-        std::cout << "Total records: " << vault.getRecordCount() << std::endl;
-        std::cout << "Categories: " << vault.getCategoryCount() << std::endl;
-
-        auto categories = vault.getAllCategories();
-        std::cout << "\nCategories list:" << std::endl;
-        for (const auto& category : categories) {
-            auto category_records = vault.getRecordsByCategory(category);
-            std::cout << "  " << category << ": " << category_records.size() << " records" << std::endl;
-        }
-
-        std::time_t last_modified = vault.getLastModified();
-        std::cout << "\nLast modified: " << std::ctime(&last_modified);
-        std::cout << "Vault file: " << vault.getVaultFilePath() << std::endl;
-        std::cout << "Status: " << (vault.isAuthenticated() ? "Unlocked" : "Locked") << std::endl;
-
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-}
-
-// Демонстрация работы SecureInputBuffer
-void demonstrateSecureInput() {
-    std::cout << "\n=== Secure Input Demonstration ===" << std::endl;
-
-    std::cout << "Enter sensitive data (hidden): ";
-    std::string hidden_input = SecureInputBuffer::readSecureString(true);
-    std::cout << "Input length: " << hidden_input.length() << " characters" << std::endl;
-
-    std::cout << "Enter visible data: ";
-    std::string visible_input = SecureInputBuffer::readSecureString(false);
-    std::cout << "You entered: " << visible_input << std::endl;
-}
-
-// Основная функция
 int main() {
-    std::cout << "🚀 IronVault Password Manager - Complete System Demo" << std::endl;
-    std::cout << "====================================================" << std::endl;
+    // Включаем поддержку кириллицы в консоли (если Windows)
+#ifdef _WIN32
+    system("chcp 65001 > nul");
+#endif
 
-    try {
-        // Инициализация криптографии
-        DataEncryption::initializeCrypto();
+    std::string vaultFile = "ironvault.dat";
+    CredentialVault vault(vaultFile);
+    std::string masterPassword;
+    bool isAuthenticated = false;
 
-        // Демонстрация отдельных компонентов
-        demonstratePasswordGenerator();
-        demonstrateDataEncryption();
-        demonstrateCredentialRecord();
+    printHeader();
+    std::cout << "Добро пожаловать в IronVault.\n";
 
-        // Создание хранилища
-        CredentialVault vault("demo_vault.dat");
+    // Цикл аутентификации
+    while (!isAuthenticated) {
+        std::cout << "\nПожалуйста, введите Мастер-пароль для входа или создания хранилища:\n";
+        std::cout << "Пароль: ";
 
-        // Демонстрация SecureInputBuffer
-        demonstrateSecureInput();
+        // Используем ваш класс для скрытого ввода
+        masterPassword = SecureInputBuffer::readSecureString();
+        std::cout << "\n";
 
-        // Загрузка хранилища (в демо-режиме создаем новое)
-        std::cout << "\n=== Vault Initialization ===" << std::endl;
-        std::cout << "Enter master password for demo vault: ";
-        std::string master_password = SecureInputBuffer::readSecureString(true);
-
-        if (vault.loadFromFile(master_password)) {
-            std::cout << "✓ Vault unlocked successfully!" << std::endl;
-        } else {
-            std::cout << "✓ New vault created!" << std::endl;
+        if (masterPassword.empty()) {
+            std::cout << "Пароль не может быть пустым.\n";
+            continue;
         }
 
-        // Добавляем демо-данные
-        CredentialRecord demo1("Google", "https://google.com", "user@gmail.com",
-                               DataEncryption::encrypt("password123", "demo_master_key"), "Email");
-        CredentialRecord demo2("GitHub", "https://github.com", "developer",
-                               DataEncryption::encrypt("devpass456", "demo_master_key"), "Development");
-        CredentialRecord demo3("Facebook", "https://facebook.com", "user123",
-                               DataEncryption::encrypt("social789", "demo_master_key"), "Social");
+        std::cout << "Попытка открытия хранилища...\n";
+        if (vault.loadFromFile(masterPassword)) {
+            std::cout << "Успешный вход!\n";
+            isAuthenticated = true;
+        } else {
+            std::cout << "Ошибка входа. Неверный пароль или файл поврежден.\n";
+            std::cout << "Попробовать снова? (y/n): ";
+            char retry;
+            std::cin >> retry;
+            clearInputBuffer();
+            if (retry == 'n' || retry == 'N') return 0;
+        }
+    }
 
-        vault.addRecord(demo1);
-        vault.addRecord(demo2);
-        vault.addRecord(demo3);
+    // Основной цикл программы
+    bool running = true;
+    while (running) {
+        printHeader();
+        std::cout << "1. Найти запись\n";
+        std::cout << "2. Добавить новую запись\n";
+        std::cout << "3. Показать все записи\n";
+        std::cout << "4. Показать все категории\n";
+        std::cout << "5. Генератор паролей\n";
+        std::cout << "6. Сохранить и Выйти\n";
+        std::cout << "0. Выйти без сохранения\n";
+        std::cout << "\nВаш выбор: ";
 
-        // Главный цикл меню
         int choice;
-        do {
-            displayMainMenu();
-            std::cin >> choice;
-            std::cin.ignore(); // Очистка буфера
+        if (!(std::cin >> choice)) {
+            std::cin.clear();
+            clearInputBuffer();
+            continue;
+        }
+        clearInputBuffer();
 
-            switch (choice) {
-                case 1:
-                    addNewCredential(vault);
-                    break;
-                case 2:
-                    viewAllCredentials(vault);
-                    break;
-                case 3:
-                    searchCredentials(vault);
-                    break;
-                case 4:
-                    generatePasswordDemo(vault);
-                    break;
-                case 5:
-                    changeMasterPassword(vault);
-                    break;
-                case 6:
-                    showVaultStatistics(vault);
-                    break;
-                case 7:
-                    vault.lockVault();
-                    std::cout << "✓ Vault locked!" << std::endl;
-                    break;
-                case 8:
-                    demonstrateDataEncryption();
-                    break;
-                case 0:
-                    std::cout << "Saving vault..." << std::endl;
-                    if (vault.saveToFile(master_password)) {
-                        std::cout << "✓ Vault saved successfully!" << std::endl;
+        switch (choice) {
+            case 1:
+                handleSearch(vault, masterPassword);
+                pauseConsole();
+                break;
+            case 2:
+                handleAddRecord(vault, masterPassword);
+                // Автосохранение после добавления для безопасности
+                vault.saveToFile(masterPassword);
+                pauseConsole();
+                break;
+            case 3: {
+                std::vector<CredentialRecord> all = vault.getAllRecords();
+                if (all.empty()) {
+                    std::cout << "Хранилище пусто.\n";
+                } else {
+                    std::cout << "\n--- Все записи ---\n";
+                    for (const auto& rec : all) {
+                        printRecordSummary(rec);
                     }
-                    std::cout << "Goodbye!" << std::endl;
-                    break;
-                default:
-                    std::cout << "Invalid option!" << std::endl;
+                }
+                pauseConsole();
+                break;
             }
-
-        } while (choice != 0);
-
-        // Очистка криптографии
-        DataEncryption::cleanupCrypto();
-
-    } catch (const std::exception& e) {
-        std::cerr << "💥 Critical error: " << e.what() << std::endl;
-        return 1;
+            case 4: {
+                std::vector<std::string> cats = vault.getAllCategories();
+                std::cout << "\n--- Категории ---\n";
+                for (const auto& cat : cats) std::cout << "- " << cat << "\n";
+                pauseConsole();
+                break;
+            }
+            case 5: {
+                std::cout << "\nСгенерированный пароль: "
+                          << vault.generatePassword(16, true, true, true, true) << "\n";
+                pauseConsole();
+                break;
+            }
+            case 6:
+                if (vault.saveToFile(masterPassword)) {
+                    std::cout << "Хранилище успешно сохранено. До свидания!\n";
+                } else {
+                    std::cout << "Ошибка при сохранении файла!\n";
+                }
+                running = false;
+                break;
+            case 0:
+                std::cout << "Выход без сохранения...\n";
+                running = false;
+                break;
+            default:
+                std::cout << "Неверный выбор.\n";
+                break;
+        }
     }
 
     return 0;

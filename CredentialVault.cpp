@@ -52,7 +52,7 @@ bool CredentialVault::loadFromFile(const std::string& master_password) {
 
         // Дешифруем данные
         std::string decrypted_data = decryptVaultData(encrypted_data, master_password);
-        / Проверяем заголовок
+        // Проверяем заголовок
         if (!validateVaultHeader(decrypted_data)) {
             throw std::runtime_error("Invalid vault file format");
         }
@@ -269,17 +269,17 @@ std::vector<std::string> CredentialVault::getAllCategories() const {
 std::string CredentialVault::generatePassword(int length, bool use_uppercase,
                                               bool use_lowercase, bool use_digits,
                                               bool use_special) {
-    if (!password_generator) {
+    if (!password_genera) {
         initializePasswordGenerator();
     }
 
-    password_generator->setLength(length);
-    password_generator->setUppercase(use_uppercase);
-    password_generator->setLowercase(use_lowercase);
-    password_generator->setDigits(use_digits);
-    password_generator->setSpecialChars(use_special);
+    password_genera->setLength(length);
+    password_genera->setUppercase(use_uppercase);
+    password_genera->setLowercase(use_lowercase);
+    password_genera->setDigits(use_digits);
+    password_genera->setSpecialChars(use_special);
 
-    return password_generator->generate();
+    return password_genera->generate();
 }
 
 // Статистика
@@ -347,7 +347,7 @@ std::string CredentialVault::decryptVaultData(const std::string& encrypted_data,
 
 // Инициализация генератора паролей
 void CredentialVault::initializePasswordGenerator() {
-    password_generator = std::make_unique<PasswordGenerator>();
+    password_genera = std::make_unique<PasswordGenerator>();
 }
 
 // Проверка заголовка хранилища

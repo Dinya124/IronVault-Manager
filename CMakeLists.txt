@@ -34,6 +34,8 @@ add_executable(IronVault-Manager
         DataEncryption.h
         CredentialRecord.cpp
         CredentialRecord.h
+        CredentialVault.cpp
+        CredentialVault.h
 )
 
 target_include_directories(IronVault-Manager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

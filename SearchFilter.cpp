@@ -82,8 +82,7 @@ bool SearchFilter::matchesNotes(const CredentialRecord &record) const {
         return true;
     }
 
-    std::string notes = record.getNotes();
-    return matchesText(notes, notes_query);
+    return false;
 }
 
 // Проверка соответствия временному диапазону
@@ -176,6 +175,10 @@ void SearchFilter::addExcludedCategory(const std::string &category) {
     if (!category.empty()) {
         excluded_categories.push_back(category);
     }
+}
+
+void SearchFilter::setSearchInNotes(bool search_notes) {
+    search_in_notes = search_notes;
 }
 
 // Очистка критериев
