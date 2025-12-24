@@ -36,6 +36,11 @@ add_executable(IronVault-Manager
         CredentialRecord.h
         CredentialVault.cpp
         CredentialVault.h
+        BankCardRecord.cpp
+        BankCardRecord.h
+        SecureRepository.h
+        VaultStatistics.h
+        CompileTimeFeatures.h
 )
 
 target_include_directories(IronVault-Manager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -48,3 +53,4 @@ if(WIN32)
 endif()
 
 message(STATUS "Project configured successfully with OpenSSL")
+set(CMAKE_CXX_STANDARD 17)

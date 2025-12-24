@@ -6,6 +6,8 @@
 #include "MasterPasswordManager.h"
 #include "PasswordGenerator.h"
 #include "SearchFilter.h"
+#include "SecureRepository.h" // <--- ВАЖНО: Подключаем наш новый шаблонный репозиторий
+
 #include <vector>
 #include <string>
 #include <memory>
@@ -14,12 +16,14 @@
 
 class CredentialVault {
 private:
-    std::vector<CredentialRecord> records;
+    // БЫЛО: std::vector<CredentialRecord> records;
+    // СТАЛО: Использование шаблонного класса-контейнера
+    SecureRepository<CredentialRecord> repository;
+
     std::string vault_file_path;
     std::string master_password_hash;
     bool is_authenticated;
     std::unique_ptr<PasswordGenerator> password_genera;
-
 
     // Константы
     static const std::string VAULT_HEADER;
@@ -49,7 +53,7 @@ public:
 
     CredentialRecord *findRecord(const std::string &service_name);
 
-// Поиск и фильтрация
+    // Поиск и фильтрация
     std::vector<CredentialRecord> searchRecords(const SearchFilter &filter) const;
 
     std::vector<CredentialRecord> getRecordsByCategory(const std::string &category) const;
@@ -69,6 +73,9 @@ public:
     size_t getCategoryCount() const;
 
     std::time_t getLastModified() const;
+
+
+    double calculateAverageEncryptionStrength() const;
 
     // Геттеры
     std::string getVaultFilePath() const;
@@ -105,8 +112,6 @@ private:
     void removeDuplicateRecords();
 
     bool backupVaultFile() const;
-
 };
-
 
 #endif
