@@ -1,115 +1,34 @@
 #include "CredentialRecord.h"
+#include "DataEncryption.h" // Важно подключить для decrypt
 #include <sstream>
 #include <vector>
 #include <iomanip>
-#include "DataEncryption.h"
+#include <iostream>
+#include <stdexcept>
 
-int CredentialRecord::records_created_count = 0;
+// Анонимное пространство имен для локальных помощников
+namespace {
+    const std::string DELIM = "|;|";
 
-CredentialRecord::CredentialRecord()
-        : BaseRecord(), // Вызов конструктора BaseRecord
-          service_name(""), url(""), login(""), encrypted_password(""),
-          category("General"), internal_key("") {
-    records_created_count++;
-}
-
-CredentialRecord::CredentialRecord(const std::string &service, const std::string &url,
-                                   const std::string &login, const std::string &encrypted_password,
-                                   const std::string &category)
-        : BaseRecord(std::time(nullptr)),
-          service_name(service), url(url), login(login),
-          encrypted_password(encrypted_password), category(category),
-          internal_key("") {
-
-    if (service_name.empty()) throw std::invalid_argument("Service name cannot be empty");
-    if (login.empty()) throw std::invalid_argument("Login cannot be empty");
-
-    this->description = "Login Credential"; // Поле из BaseRecord
-    records_created_count++;
-}
-
-// Реализация конструктора копирования
-CredentialRecord::CredentialRecord(const CredentialRecord& other)
-        : BaseRecord(other), // Копирование базовой части
-          service_name(other.service_name),
-          url(other.url),
-          login(other.login),
-          encrypted_password(other.encrypted_password),
-          category(other.category),
-          internal_key(other.internal_key) {
-    records_created_count++;
-}
-
-//Реализация виртуальных методов
-
-std::string CredentialRecord::getSummary() const {
-    // Перегрузка метода базового класса (реализация чисто виртуального)
-    return service_name + " (" + login + ")";
-}
-
-BaseRecord* CredentialRecord::clone() const {
-    // Клонирование: создает новую копию текущего объекта
-    return new CredentialRecord(*this);
-}
-
-
-int CredentialRecord::getRecordsCreatedCount() { return records_created_count; }
-
-bool CredentialRecord::operator==(const CredentialRecord& other) const {
-    return this->service_name == other.service_name && this->login == other.login;
-}
-
-bool CredentialRecord::operator!=(const CredentialRecord& other) const { return !(*this == other); }
-
-std::ostream& operator<<(std::ostream& os, const CredentialRecord& record) {
-    os << "Service: " << record.service_name
-       << " | Login: " << record.login
-       << " | Category: " << record.category;
-    return os;
-}
-
-std::string CredentialRecord::getPassword(const std::string &decryption_key) const {
-    return DataEncryption::decrypt(encrypted_password, decryption_key, internal_key);
-}
-
-void CredentialRecord::setServiceName(const std::string &name) {
-    if (this->service_name != name) {
-        this->service_name = name;
-        this->updateLastModified();
+    // Безопасная кроссплатформенная функция времени
+    void safe_localtime(const std::time_t& time, std::tm& tm_struct) {
+#if defined(_MSC_VER) || defined(_WIN32)
+        localtime_s(&tm_struct, &time);
+#else
+        localtime_r(&time, &tm_struct);
+#endif
     }
 }
 
-void CredentialRecord::setUrl(const std::string &url) { this->url = url; updateLastModified(); }
-void CredentialRecord::setLogin(const std::string &login) { this->login = login; updateLastModified(); }
-void CredentialRecord::setEncryptedPassword(const std::string &p) { this->encrypted_password = p; updateLastModified(); }
-void CredentialRecord::setCategory(const std::string &c) { this->category = c.empty() ? "General" : c; updateLastModified(); }
-void CredentialRecord::setInternalKey(const std::string &key) { internal_key = key; updateLastModified(); }
-
-std::string CredentialRecord::getServiceName() const { return service_name; }
-std::string CredentialRecord::getUrl() const { return url; }
-std::string CredentialRecord::getLogin() const { return login; }
-std::string CredentialRecord::getEncryptedPassword() const { return encrypted_password; }
-std::string CredentialRecord::getCategory() const { return category; }
-std::string CredentialRecord::getInternalKey() const { return internal_key; }
-bool CredentialRecord::isEmpty() const { return service_name.empty() && login.empty(); }
-
-std::string CredentialRecord::toString() const {
-    return service_name + " (" + login + ")";
-}
-
-static const std::string DELIM = "|;|";
-
-std::string CredentialRecord::serialize() const {
-    std::stringstream ss;
-    ss << service_name << DELIM << url << DELIM << login << DELIM
-       << encrypted_password << DELIM << category << DELIM << internal_key << DELIM << last_modified;
-    return ss.str();
-}
-
-std::vector<std::string> split(const std::string& s, const std::string& delimiter) {
+// Вспомогательная функция split
+static std::vector<std::string> split(const std::string& s, const std::string& delimiter) {
     std::vector<std::string> tokens;
+    if (s.empty()) return tokens;
+
     size_t pos = 0;
-    std::string token, s_copy = s;
+    std::string token;
+    std::string s_copy = s;
+
     while ((pos = s_copy.find(delimiter)) != std::string::npos) {
         token = s_copy.substr(0, pos);
         tokens.push_back(token);
@@ -119,20 +38,112 @@ std::vector<std::string> split(const std::string& s, const std::string& delimite
     return tokens;
 }
 
-CredentialRecord CredentialRecord::deserialize(const std::string& data) {
-    CredentialRecord record;
-    if (data.empty()) return record;
-    std::vector<std::string> parts = split(data, DELIM);
-    if (parts.size() >= 6) {
-        record.service_name = parts[0];
-        record.url = parts[1];
-        record.login = parts[2];
-        record.encrypted_password = parts[3];
-        record.category = parts[4];
-        record.internal_key = parts[5];
-        if (parts.size() > 6) {
-            try { record.last_modified = std::stol(parts[6]); } catch (...) { record.last_modified = std::time(nullptr); }
-        }
+// --- Конструкторы ---
+
+CredentialRecord::CredentialRecord()
+        : BaseRecord(),
+          service_name("Unknown"), url(""), login(""), encrypted_password(""), category("General") {}
+
+// Реализация конструктора (совпадает с заголовком: string по значению)
+CredentialRecord::CredentialRecord(std::string service, std::string url,
+                                   std::string login, std::string encrypted_password,
+                                   std::string category)
+        : BaseRecord(),
+          service_name(std::move(service)),
+          url(std::move(url)),
+          login(std::move(login)),
+          encrypted_password(std::move(encrypted_password)),
+          category(std::move(category)) {
+
+    if (this->service_name.empty()) {
+        throw std::invalid_argument("Service name cannot be empty");
     }
-    return record;
+    if (this->category.empty()) {
+        this->category = "General";
+    }
 }
+
+// --- Методы BaseRecord ---
+
+std::unique_ptr<BaseRecord> CredentialRecord::clone() const {
+    return std::make_unique<CredentialRecord>(*this);
+}
+
+std::string CredentialRecord::serialize() const {
+    std::stringstream ss;
+    ss << getType() << DELIM
+       << service_name << DELIM
+       << url << DELIM
+       << login << DELIM
+       << encrypted_password << DELIM
+       << category << DELIM
+       << last_modified;
+    return ss.str();
+}
+
+std::string CredentialRecord::getDetailedInfo(const std::string &masterKey) const {
+    std::stringstream ss;
+    ss << "Тип:        Учетная запись\n";
+    ss << "Сервис:     " << service_name << "\n";
+    ss << "URL:        " << (url.empty() ? "-" : url) << "\n";
+    ss << "Логин:      " << login << "\n";
+    ss << "Категория:  " << category << "\n";
+
+    std::tm tm_struct = {};
+    safe_localtime(last_modified, tm_struct);
+    ss << "Изменено:   " << std::put_time(&tm_struct, "%Y-%m-%d %H:%M:%S") << "\n";
+
+    ss << "Пароль:     ";
+    try {
+        if (encrypted_password.empty()) {
+            ss << "[ПУСТО]";
+        } else {
+            // Требует #include "DataEncryption.h"
+            std::string decrypted = DataEncryption::decrypt(encrypted_password, masterKey);
+            ss << decrypted;
+        }
+    } catch (...) {
+        ss << "[ОШИБКА РАСШИФРОВКИ]";
+    }
+
+    return ss.str();
+}
+
+// --- Десериализация ---
+
+std::unique_ptr<CredentialRecord> CredentialRecord::deserializeObj(const std::string& data) {
+    if (data.empty()) return nullptr;
+
+    std::vector<std::string> parts = split(data, DELIM);
+
+    // Ожидаем минимум 7 полей
+    if (parts.size() < 7) return nullptr;
+
+    try {
+        auto record = std::make_unique<CredentialRecord>(
+                std::move(parts[1]),
+                std::move(parts[2]),
+                std::move(parts[3]),
+                std::move(parts[4]),
+                std::move(parts[5])
+        );
+
+        try {
+            record->last_modified = std::stol(parts[6]);
+        } catch (...) {
+            record->last_modified = std::time(nullptr);
+        }
+
+        return record;
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+// --- Геттеры ---
+
+std::string CredentialRecord::getServiceName() const { return service_name; }
+std::string CredentialRecord::getUrl() const { return url; }
+std::string CredentialRecord::getLogin() const { return login; }
+std::string CredentialRecord::getCategory() const { return category; }
+std::string CredentialRecord::getEncryptedPassword() const { return encrypted_password; }

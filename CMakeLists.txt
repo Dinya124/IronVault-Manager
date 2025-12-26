@@ -36,11 +36,6 @@ add_executable(IronVault-Manager
         CredentialRecord.h
         CredentialVault.cpp
         CredentialVault.h
-        BankCardRecord.cpp
-        BankCardRecord.h
-        SecureRepository.h
-        VaultStatistics.h
-        CompileTimeFeatures.h
 )
 
 target_include_directories(IronVault-Manager PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

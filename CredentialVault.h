@@ -1,117 +1,58 @@
-#ifndef IRONVAULT_MANAGER_CREDENTIALVAULT_H
-#define IRONVAULT_MANAGER_CREDENTIALVAULT_H
+#ifndef CREDENTIALVAULT_H
+#define CREDENTIALVAULT_H
 
+#include "BaseRecord.h"
 #include "CredentialRecord.h"
 #include "DataEncryption.h"
 #include "MasterPasswordManager.h"
 #include "PasswordGenerator.h"
 #include "SearchFilter.h"
-#include "SecureRepository.h" // <--- ВАЖНО: Подключаем наш новый шаблонный репозиторий
 
 #include <vector>
 #include <string>
 #include <memory>
-#include <unordered_map>
-#include <ctime>
+#include <algorithm>
 
 class CredentialVault {
 private:
-    // БЫЛО: std::vector<CredentialRecord> records;
-    // СТАЛО: Использование шаблонного класса-контейнера
-    SecureRepository<CredentialRecord> repository;
+    // ПОЛИМОРФНЫЙ КОНТЕЙНЕР: хранит указатели на базовый класс
+    std::vector<std::unique_ptr<BaseRecord>> records;
 
     std::string vault_file_path;
     std::string master_password_hash;
     bool is_authenticated;
     std::unique_ptr<PasswordGenerator> password_genera;
 
-    // Константы
     static const std::string VAULT_HEADER;
-    static const std::string VAULT_VERSION;
 
 public:
-    // Конструкторы
-    CredentialVault();
+    CredentialVault(const std::string &file_path = "ironvault.dat");
 
-    explicit CredentialVault(const std::string &file_path);
-
-    // Основные методы работы с хранилищем
     bool loadFromFile(const std::string &master_password);
-
     bool saveToFile(const std::string &master_password);
 
-    bool verifyMasterPassword(const std::string &master_password) const;
+    // Добавление принимает unique_ptr (передача владения)
+    bool addRecord(std::unique_ptr<BaseRecord> record);
 
-    void lockVault();
+    // Получение всех записей (возвращаем сырые указатели для просмотра)
+    std::vector<const BaseRecord*> getAllRecords() const;
 
-    // Управление записями
-    bool addRecord(const CredentialRecord &record);
+    // Поиск возвращает список указателей
+    std::vector<const BaseRecord*> searchRecords(const SearchFilter &filter) const;
 
-    bool updateRecord(const std::string &service_name, const CredentialRecord &updated_record);
-
-    bool removeRecord(const std::string &service_name);
-
-    CredentialRecord *findRecord(const std::string &service_name);
-
-    // Поиск и фильтрация
-    std::vector<CredentialRecord> searchRecords(const SearchFilter &filter) const;
-
-    std::vector<CredentialRecord> getRecordsByCategory(const std::string &category) const;
-
+    // Вспомогательные
     std::vector<std::string> getAllCategories() const;
+    std::string generatePassword(int len=16, bool u=true, bool l=true, bool d=true, bool s=true);
+    bool isServiceNameUnique(const std::string &name) const;
 
-    // Генерация паролей
-    std::string generatePassword(int length = 16,
-                                 bool use_uppercase = true,
-                                 bool use_lowercase = true,
-                                 bool use_digits = true,
-                                 bool use_special = true);
-
-    // Статистика
-    size_t getRecordCount() const;
-
-    size_t getCategoryCount() const;
-
-    std::time_t getLastModified() const;
-
-
-    double calculateAverageEncryptionStrength() const;
-
-    // Геттеры
-    std::string getVaultFilePath() const;
-
-    bool isAuthenticated() const;
-
-    std::vector<CredentialRecord> getAllRecords() const;
-
-    // Валидация
-    bool isServiceNameUnique(const std::string &service_name) const;
-
-    bool validateRecord(const CredentialRecord &record) const;
-
-    // Импорт/экспорт
-    bool exportToCsv(const std::string &file_path, const std::string &master_password) const;
-
-    bool importFromCsv(const std::string &file_path, const std::string &master_password);
+    // Прочее
+    bool verifyMasterPassword(const std::string &mp) const;
+    bool isAuthenticated() const { return is_authenticated; }
 
 private:
-    // Внутренние методы
-    std::string encryptVaultData(const std::string &data, const std::string &master_password) const;
-
-    std::string decryptVaultData(const std::string &encrypted_data, const std::string &master_password) const;
-
+    std::string encryptVaultData(const std::string &data, const std::string &pass) const;
+    std::string decryptVaultData(const std::string &data, const std::string &pass) const;
     void initializePasswordGenerator();
-
-    bool validateVaultHeader(const std::string &data) const;
-
-    std::string createVaultHeader() const;
-
-    // Вспомогательные методы
-    void sortRecords();
-
-    void removeDuplicateRecords();
-
-    bool backupVaultFile() const;
 };
 
 #endif

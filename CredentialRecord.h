@@ -1,10 +1,9 @@
 #ifndef CREDENTIALRECORD_H
 #define CREDENTIALRECORD_H
 
-#include <string>
-#include <ctime>
-#include <iostream>
 #include "BaseRecord.h"
+#include <string>
+#include <memory>
 
 class CredentialRecord : public BaseRecord {
 private:
@@ -13,55 +12,43 @@ private:
     std::string login;
     std::string encrypted_password;
     std::string category;
-    std::string internal_key;
-
-    static int records_created_count;
 
 public:
+    // Конструктор по умолчанию
     CredentialRecord();
 
-    CredentialRecord(const std::string &service, const std::string &url,
-                     const std::string &login, const std::string &encrypted_password,
-                     const std::string &category = "General");
+    // Параметризованный конструктор
+    // Важно: принимаем std::string по значению для std::move (оптимизация)
+    CredentialRecord(std::string service, std::string url,
+                     std::string login, std::string encrypted_password,
+                     std::string category);
 
-    // Конструктор копирования (теперь обязателен для clone)
-    CredentialRecord(const CredentialRecord& other);
-
-    static int getRecordsCreatedCount();
-
-    bool operator==(const CredentialRecord& other) const;
-    bool operator!=(const CredentialRecord& other) const;
-    friend std::ostream& operator<<(std::ostream& os, const CredentialRecord& record);
-
-    std::string getPassword(const std::string &decryption_key) const;
-
-    //Реализация виртуальных методов BaseRecord
-    std::string getSummary() const override;
+    // --- Реализация виртуальных методов BaseRecord ---
     std::string getType() const override { return "Credential"; }
-    BaseRecord* clone() const override;
 
+    // Краткая сводка для списков
+    std::string getSummary() const override {
+        return service_name + " (" + login + ")";
+    }
 
-    // Сеттеры
-    void setServiceName(const std::string &name);
-    void setUrl(const std::string &url);
-    void setLogin(const std::string &login);
-    void setEncryptedPassword(const std::string &encrypted_password);
-    void setCategory(const std::string &category);
-    void setInternalKey(const std::string &key);
+    // Полная информация (с расшифровкой)
+    std::string getDetailedInfo(const std::string& masterKey) const override;
 
-    // Геттеры
+    // Сериализация для сохранения
+    std::string serialize() const override;
+
+    // Клонирование объекта
+    std::unique_ptr<BaseRecord> clone() const override;
+
+    // --- Специфичные геттеры ---
     std::string getServiceName() const;
     std::string getUrl() const;
     std::string getLogin() const;
-    std::string getEncryptedPassword() const;
     std::string getCategory() const;
-    std::string getInternalKey() const;
+    std::string getEncryptedPassword() const;
 
-    bool isEmpty() const;
-    std::string toString() const;
-
-    std::string serialize() const;
-    static CredentialRecord deserialize(const std::string &data);
+    // --- Статический метод десериализации (Фабрика) ---
+    static std::unique_ptr<CredentialRecord> deserializeObj(const std::string& data);
 };
 
 #endif

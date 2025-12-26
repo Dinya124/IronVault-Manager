@@ -4,18 +4,16 @@
 #include <iomanip>
 #include <algorithm>
 #include <iostream>
-#include <stdexcept>
+#include <filesystem>
+#include <memory> // Для dynamic_pointer_cast и unique_ptr
 
 // Подключение модулей проекта
 #include "CredentialVault.h"
+#include "BaseRecord.h"
 #include "CredentialRecord.h"
-#include "BankCardRecord.h"     // Новый класс (из предыдущих шагов)
 #include "SecureInputBuffer.h"
 #include "SearchFilter.h"
-#include "PasswordGenerator.h"
-#include "SecureRepository.h"   // Шаблонный класс
-#include "VaultStatistics.h"    // Шаблонная функция
-#include "CompileTimeFeatures.h" // !!! НОВЫЙ МОДУЛЬ (C++20) !!!
+#include "DataEncryption.h" // Для шифрования при добавлении
 
 // --- Вспомогательные функции ---
 
@@ -29,123 +27,103 @@ void pauseConsole() {
     std::cin.get();
 }
 
-// --- ДЕМОНСТРАЦИИ ЗАДАНИЙ ---
-
-// Задание 1: STL и Шаблоны
-void demonstrateSTLFeatures() {
-    std::cout << "\n=== DEMONSTRATION OF C++ FEATURES (STL & Templates) ===\n";
-
-    // 1. Использование шаблонного класса SecureRepository с ограничением типа
-    std::cout << "[1] Template Class (SecureRepository<T>):\n";
-    SecureRepository<CredentialRecord> demoRepo;
-
-    CredentialRecord rec1("DemoService", "http://demo.com", "user1", "pass123", "Work");
-    rec1.setDescription("DemoService");
-
-    CredentialRecord rec2("TestApp", "http://test.app", "admin", "admin", "Personal");
-    rec2.setDescription("TestApp");
-
-    demoRepo.add(rec1);
-    demoRepo.add(rec2);
-
-    std::cout << "    Records in template repo: " << demoRepo.count() << "\n";
-
-    // 2. Использование шаблонной функции с ограничением типа (SFINAE)
-    std::cout << "[2] Template Function (VaultStats::calculateAverage):\n";
-    std::vector<double> entropies = {55.5, 80.0, 120.5, 40.0};
-    double avg = VaultStats::calculateAverage(entropies);
-    std::cout << "    Calculated Average Entropy: " << avg << " bits\n";
-
-    // 3. Использование STL Алгоритмов (find_if)
-    std::cout << "[3] STL Algorithm (std::find_if):\n";
-    auto& storage = demoRepo.getStorage();
-    auto it = std::find_if(storage.begin(), storage.end(), [](const std::shared_ptr<CredentialRecord>& r){
-        return r->getCategory() == "Personal";
-    });
-
-    if (it != storage.end()) {
-        std::cout << "    Found Personal account: " << (*it)->getServiceName() << "\n";
+// Помощник для обрезки длинных строк
+std::string truncate(std::string str, size_t width) {
+    if (str.length() > width) {
+        return str.substr(0, width - 3) + "...";
     }
-
-    std::cout << "=======================================================\n";
+    return str;
 }
 
-// Задание 2: C++20 (consteval, constinit)
-void demonstrateCompileTimeFeatures() {
-    std::cout << "\n=== DEMONSTRATION OF C++20 FEATURES ===\n";
+void printHeader(const std::string& userProfile) {
 
-    // 1. consteval: Хеширование строки во время компиляции
-    // В бинарном файле строки "IRONVAULT" не будет, будет только число.
-    constexpr uint64_t expectedHash = compileTimeHash("IRONVAULT");
-    std::cout << "[1] consteval Hash of 'IRONVAULT': " << expectedHash << "\n";
-
-    // 2. constinit: Гарантированная статическая инициализация
-    // Объект globalCryptoConfig инициализирован до main()
-    std::cout << "[2] constinit Configuration:\n";
-    std::cout << "    AES Key Size: " << globalCryptoConfig.aes_key_size << " bits (calculated at compile-time)\n";
-    std::cout << "    Optimal Buffer: " << globalCryptoConfig.getOptimalBufferSize() << " bytes\n";
-    std::cout << "    Safety Margin: " << globalCryptoConfig.buffer_safety_margin << "\n";
-
-    std::cout << "=======================================\n\n";
-}
-
-// --- Интерфейс ---
-
-void printHeader() {
-    std::cout << "\n\n\n";
     std::cout << "========================================\n";
     std::cout << "      IRON VAULT PASSWORD MANAGER       \n";
     std::cout << "========================================\n";
-    std::cout << "Сессия: Создано объектов: " << CredentialRecord::getRecordsCreatedCount() << "\n";
+    if (!userProfile.empty()) {
+        std::cout << "Пользователь: [" << userProfile << "]\n";
+    }
     std::cout << "========================================\n";
 }
 
-void printRecordSummary(const CredentialRecord& record) {
-    std::cout << record << "\n"; // Перегруженный оператор <<
+// --- Функции отображения (Полиморфные) ---
+
+void viewRecordDetails(const BaseRecord& record, const std::string& masterPassword) {
+    std::cout << "\n--- Подробности записи ---\n";
+    // Полиморфный вызов: каждый тип записи сам знает, как себя показать
+    std::cout << record.getDetailedInfo(masterPassword) << "\n";
+    std::cout << "--------------------------\n";
 }
 
-void viewRecordDetails(const CredentialRecord& record, const std::string& masterPassword) {
-    std::cout << "\n--- Детали записи ---\n";
-    std::cout << "Сервис:    " << record.getServiceName() << "\n";
-    std::cout << "URL:       " << record.getUrl() << "\n";
-    std::cout << "Логин:     " << record.getLogin() << "\n";
-    std::cout << "Категория: " << record.getCategory() << "\n";
-    std::cout << "Дата изм.: " << record.getLastModified() << "\n";
-
-    std::cout << "Пароль:    ";
-    try {
-        std::string decrypted = record.getPassword(masterPassword);
-        std::cout << decrypted << "\n";
-    } catch (...) {
-        std::cout << "[ОШИБКА РАСШИФРОВКИ]\n";
+// Функция вывода таблицы. Принимает список указателей на базовый класс.
+void printRecordList(const std::vector<const BaseRecord*>& records) {
+    if (records.empty()) {
+        std::cout << "Список пуст.\n";
+        return;
     }
-    std::cout << "---------------------\n";
+
+    // Ширина колонок
+    const int wNo = 4;
+    const int wServ = 22;
+    const int wLog = 22;
+    const int wCat = 15;
+
+    // Шапка
+    std::cout << " " << std::string(wNo + wServ + wLog + wCat + 10, '-') << "\n";
+    std::cout << " | " << std::left << std::setw(wNo) << "No"
+              << " | " << std::setw(wServ) << "Сервис/Тип"
+              << " | " << std::setw(wLog) << "Логин/Инфо"
+              << " | " << std::setw(wCat) << "Категория" << " |\n";
+    std::cout << " " << std::string(wNo + wServ + wLog + wCat + 10, '-') << "\n";
+
+    // Вывод строк
+    for (size_t i = 0; i < records.size(); ++i) {
+        const BaseRecord* ptr = records[i];
+
+        std::string sName, sLog, sCat;
+
+        // Пытаемся привести к CredentialRecord, чтобы достать специфичные поля
+        if (auto* cred = dynamic_cast<const CredentialRecord*>(ptr)) {
+            sName = cred->getServiceName();
+            sLog = cred->getLogin();
+            sCat = cred->getCategory();
+        } else {
+            // Если добавим другие типы записей (например, заметки), будет работать этот блок
+            sName = ptr->getType();
+            sLog = ptr->getSummary();
+            sCat = "-";
+        }
+
+        std::cout << " | " << std::left << std::setw(wNo) << (i + 1)
+                  << " | " << std::setw(wServ) << truncate(sName, wServ)
+                  << " | " << std::setw(wLog) << truncate(sLog, wLog)
+                  << " | " << std::setw(wCat) << truncate(sCat, wCat) << " |\n";
+    }
+    std::cout << " " << std::string(wNo + wServ + wLog + wCat + 10, '-') << "\n";
 }
 
 // --- Обработка команд ---
 
+// Добавление записи (обновлено для unique_ptr)
 void handleAddRecord(CredentialVault& vault, const std::string& masterPassword) {
     std::string service, login, url, category, password;
-
-    if (std::cin.peek() != '\n') clearInputBuffer();
-    else std::cin.ignore();
+    if (std::cin.peek() != '\n') clearInputBuffer(); else std::cin.ignore();
 
     std::cout << "\n--- Новая запись ---\n";
-
     try {
-        std::cout << "Сервис: "; std::getline(std::cin, service);
+        std::cout << "Сервис (обязательно): "; std::getline(std::cin, service);
+        if (service.empty()) throw std::runtime_error("Имя сервиса не может быть пустым");
 
-        if (!vault.isServiceNameUnique(service)) {
-            throw std::runtime_error("Service name already exists");
-        }
+        // Проверка уникальности
+        if (!vault.isServiceNameUnique(service)) throw std::runtime_error("Запись с таким сервисом уже существует");
 
         std::cout << "URL: "; std::getline(std::cin, url);
         std::cout << "Логин: "; std::getline(std::cin, login);
-        std::cout << "Категория: "; std::getline(std::cin, category);
+        std::cout << "Категория (по умолчанию General): "; std::getline(std::cin, category);
 
         std::cout << "Сгенерировать пароль? (y/n): ";
         char ch;
-        if (!(std::cin >> ch)) { std::cin.clear(); clearInputBuffer(); ch = 'n'; }
+        if (!(std::cin >> ch)) { std::cin.clear(); ch = 'n'; }
         clearInputBuffer();
 
         if (ch == 'y' || ch == 'Y') {
@@ -158,12 +136,15 @@ void handleAddRecord(CredentialVault& vault, const std::string& masterPassword) 
         }
 
         std::string encPass = DataEncryption::encrypt(password, masterPassword);
-        CredentialRecord rec(service, url, login, encPass, category);
 
-        if (vault.addRecord(rec)) {
+        // Создаем объект через unique_ptr (Полиморфизм)
+        auto newRecord = std::make_unique<CredentialRecord>(service, url, login, encPass, category);
+
+        // Перемещаем (move) владение объектом в хранилище
+        if (vault.addRecord(std::move(newRecord))) {
             std::cout << "Успешно добавлено!\n";
         } else {
-            std::cout << "Не удалось добавить запись.\n";
+            std::cout << "Ошибка добавления.\n";
         }
 
     } catch (const std::exception& e) {
@@ -171,146 +152,284 @@ void handleAddRecord(CredentialVault& vault, const std::string& masterPassword) 
     }
 }
 
-void handleShowRecords(CredentialVault& vault, const std::string& masterPassword, const std::vector<CredentialRecord>& recordsToShow) {
-    if (recordsToShow.empty()) {
-        std::cout << "Нет записей для отображения.\n";
+// Просмотр всех записей с выбором
+void handleShowAllRecords(CredentialVault& vault, const std::string& masterPassword) {
+    // Получаем вектор указателей (const BaseRecord*)
+    auto records = vault.getAllRecords();
+
+    if (records.empty()) {
+        std::cout << "\nХранилище пусто.\n";
         return;
     }
 
-    std::cout << "\n--- Найдено записей (" << recordsToShow.size() << ") ---\n";
-    for (size_t i = 0; i < recordsToShow.size(); ++i) {
-        std::cout << std::setw(2) << i + 1 << ". ";
-        printRecordSummary(recordsToShow[i]);
-    }
+    // Показываем список
+    printRecordList(records);
 
-    std::cout << "\nВведите номер для просмотра (0 - назад): ";
-    int choice;
-    if (!(std::cin >> choice)) { std::cin.clear(); clearInputBuffer(); return; }
+    // Цикл выбора
+    while (true) {
+        std::cout << "\nВведите номер записи для просмотра (0 - назад): ";
+        int choice;
+        if (!(std::cin >> choice)) {
+            std::cin.clear(); clearInputBuffer();
+            std::cout << "Неверный ввод.\n";
+            continue;
+        }
+        clearInputBuffer();
+
+        if (choice == 0) break;
+
+        if (choice > 0 && choice <= (int)records.size()) {
+            // Выбираем указатель из списка
+            const BaseRecord* selected = records[choice - 1];
+
+            // Полиморфный просмотр деталей
+            viewRecordDetails(*selected, masterPassword);
+            pauseConsole();
+
+            // Перерисовываем список, чтобы пользователю было удобно
+            printHeader("ПРОСМОТР");
+            printRecordList(records);
+        } else {
+            std::cout << "Неверный номер записи.\n";
+        }
+    }
+}
+
+// Расширенный поиск
+void handleAdvancedSearch(CredentialVault& vault, const std::string& masterPassword) {
+    SearchFilter filter;
+    bool searching = true;
+
+    while (searching) {
+        printHeader("ПОИСК");
+        std::cout << "Текущие фильтры:\n";
+        std::cout << "1. Сервис:    " << (filter.getServiceNameQuery().empty() ? "[Любой]" : filter.getServiceNameQuery()) << "\n";
+        std::cout << "2. Логин:     " << (filter.getLoginQuery().empty() ? "[Любой]" : filter.getLoginQuery()) << "\n";
+        std::cout << "3. Категория: " << (filter.getCategoryQuery().empty() ? "[Любая]" : filter.getCategoryQuery()) << "\n";
+        std::cout << "-----------------------\n";
+        std::cout << "4. ВЫПОЛНИТЬ ПОИСК\n";
+        std::cout << "5. Сбросить фильтры\n";
+        std::cout << "0. Назад в меню\n";
+        std::cout << "Ваш выбор: ";
+
+        int choice;
+        if (!(std::cin >> choice)) { std::cin.clear(); clearInputBuffer(); continue; }
+        clearInputBuffer();
+
+        std::string input;
+        switch (choice) {
+            case 1:
+                std::cout << "Введите часть названия сервиса: ";
+                std::getline(std::cin, input);
+                filter.setServiceNameQuery(input);
+                break;
+            case 2:
+                std::cout << "Введите логин для поиска: ";
+                std::getline(std::cin, input);
+                filter.setLoginQuery(input);
+                break;
+            case 3:
+                std::cout << "Введите категорию: ";
+                std::getline(std::cin, input);
+                filter.setCategoryQuery(input);
+                break;
+            case 4: {
+                // Выполнение поиска (возвращает vector<const BaseRecord*>)
+                auto results = vault.searchRecords(filter);
+
+                std::cout << "\n--- Результаты поиска (" << results.size() << ") ---\n";
+                printRecordList(results);
+
+                if (!results.empty()) {
+                    std::cout << "\nВведите номер записи для просмотра (0 - новый поиск): ";
+                    int idx;
+                    if (std::cin >> idx && idx > 0 && idx <= (int)results.size()) {
+                        clearInputBuffer();
+                        viewRecordDetails(*results[idx - 1], masterPassword);
+                        pauseConsole();
+                    } else {
+                        clearInputBuffer();
+                    }
+                } else {
+                    pauseConsole();
+                }
+                break;
+            }
+            case 5:
+                filter.clear();
+                std::cout << "Фильтры сброшены.\n";
+                break;
+            case 0:
+                searching = false;
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+// --- УПРАВЛЕНИЕ ПРОФИЛЯМИ ---
+
+std::string getProfileFilename(const std::string& username) {
+    return "vault_" + username + ".dat";
+}
+
+bool profileLogin(std::string& currentMasterPassword, std::string& currentUser, CredentialVault& vault) {
+    std::string username;
+    std::cout << "\nВведите имя пользователя (профиль): ";
+    std::cin >> username;
     clearInputBuffer();
 
-    if (choice > 0 && choice <= (int)recordsToShow.size()) {
-        std::string sName = recordsToShow[choice-1].getServiceName();
-        CredentialRecord* r = vault.findRecord(sName);
-        if (r) viewRecordDetails(*r, masterPassword);
-        else std::cout << "Ошибка: Запись не найдена.\n";
+    if (username.empty()) return false;
+
+    std::string filename = getProfileFilename(username);
+
+    // Пересоздаем объект vault с новым файлом
+    // Так как vault передается по ссылке из main, мы используем оператор присваивания (move assignment)
+    // или создаем новый объект на месте.
+    vault = CredentialVault(filename);
+
+    bool isNewProfile = !std::filesystem::exists(filename);
+
+    if (isNewProfile) {
+        std::cout << "Профиль '" << username << "' не найден. Создать новый? (y/n): ";
+        char c;
+        if (!(std::cin >> c) || (c != 'y' && c != 'Y')) {
+            clearInputBuffer();
+            return false;
+        }
+        clearInputBuffer();
+
+        std::cout << "Установите Мастер-пароль для нового профиля: ";
+        std::string p1 = SecureInputBuffer::readSecureString();
+        std::cout << "\nПовторите пароль: ";
+        std::string p2 = SecureInputBuffer::readSecureString();
+        std::cout << "\n";
+
+        if (p1 != p2) {
+            std::cout << "Пароли не совпадают!\n";
+            return false;
+        }
+        if (p1.empty()) {
+            std::cout << "Пароль не может быть пустым.\n";
+            return false;
+        }
+
+        if (vault.loadFromFile(p1)) {
+            currentMasterPassword = p1;
+            currentUser = username;
+            std::cout << "Профиль успешно создан!\n";
+            vault.saveToFile(currentMasterPassword);
+            return true;
+        }
+    } else {
+        std::cout << "Введите Мастер-пароль для " << username << ": ";
+        std::string pwd = SecureInputBuffer::readSecureString();
+        std::cout << "\n";
+
+        if (vault.loadFromFile(pwd)) {
+            currentMasterPassword = pwd;
+            currentUser = username;
+            std::cout << "Вход выполнен успешно.\n";
+            return true;
+        } else {
+            std::cout << "Неверный пароль или ошибка чтения файла.\n";
+        }
     }
-}
-
-void handleSearch(CredentialVault& vault, const std::string& masterPassword) {
-    std::string query;
-    if (std::cin.peek() != '\n') clearInputBuffer(); else std::cin.ignore();
-
-    std::cout << "\n--- Поиск записей ---\n";
-    std::cout << "Введите поисковый запрос: ";
-    std::getline(std::cin, query);
-    if (query.empty()) return;
-
-    SearchFilter f1; f1.setServiceNameQuery(query);
-    SearchFilter f2; f2.setLoginQuery(query);
-
-    // Объединяем фильтры (Operator overloading demo)
-    SearchFilter finalFilter = f1 + f2;
-
-    std::vector<CredentialRecord> results = vault.searchRecords(finalFilter);
-    handleShowRecords(vault, masterPassword, results);
-}
-
-void handleStatistics(CredentialVault& vault) {
-    std::cout << "\n--- Статистика хранилища (STL) ---\n";
-    std::cout << "Всего записей: " << vault.getRecordCount() << "\n";
-    std::cout << "Всего категорий: " << vault.getCategoryCount() << "\n";
-    double avg = vault.calculateAverageEncryptionStrength();
-    std::cout << "Средняя сложность шифрования (metric): " << avg << "\n";
-
-    pauseConsole();
+    return false;
 }
 
 // --- MAIN ---
 
 int main() {
+    // Настройка консоли для корректного вывода (UTF-8)
 #ifdef _WIN32
     system("chcp 65001 > nul");
 #endif
 
-    // 1. Демонстрация STL (из предыдущего задания)
-    demonstrateSTLFeatures();
+    // Глобальный цикл приложения
+    while (true) {
+        CredentialVault vault; // Объект хранилища
+        std::string masterPassword;
+        std::string currentUser;
+        bool authenticated = false;
 
-    // 2. Демонстрация C++20 (НОВОЕ ЗАДАНИЕ)
-    demonstrateCompileTimeFeatures();
+        printHeader("");
+        std::cout << "Добро пожаловать в Iron Vault (Poly Edition).\n";
 
-    pauseConsole();
-
-    // Инициализация хранилища
-    CredentialVault vault("ironvault.dat");
-    std::string masterPassword;
-    bool auth = false;
-
-    printHeader();
-
-    while (!auth) {
-        std::cout << "Введите Мастер-пароль: ";
-        masterPassword = SecureInputBuffer::readSecureString();
-        std::cout << "\n";
-
-        if (masterPassword.empty()) {
-            std::cout << "Пароль не может быть пустым.\n";
-            continue;
-        }
-
-        if (vault.loadFromFile(masterPassword)) {
-            std::cout << "Вход выполнен!\n";
-            auth = true;
-        } else {
-            std::cout << "Ошибка входа. Повторить? (y/n): ";
-            char c;
-            if (!(std::cin >> c)) c = 'y';
-            clearInputBuffer();
-            if (c == 'n' || c == 'N') return 0;
-        }
-    }
-
-    bool running = true;
-    while (running) {
-        printHeader();
-        std::cout << "1. Найти запись\n";
-        std::cout << "2. Добавить запись\n";
-        std::cout << "3. Показать все\n";
-        std::cout << "4. Категории\n";
-        std::cout << "5. Генератор паролей\n";
-        std::cout << "6. Статистика (STL Demo)\n";
-        std::cout << "7. Сохранить и Выйти\n";
-        std::cout << "0. Выйти без сохранения\n";
-        std::cout << "Выбор: ";
-
-        int choice;
-        if (!(std::cin >> choice)) {
-            std::cin.clear(); clearInputBuffer();
-            continue;
-        }
-
-        switch (choice) {
-            case 1: handleSearch(vault, masterPassword); pauseConsole(); break;
-            case 2: handleAddRecord(vault, masterPassword); pauseConsole(); break;
-            case 3: handleShowRecords(vault, masterPassword, vault.getAllRecords()); pauseConsole(); break;
-            case 4: {
-                auto cats = vault.getAllCategories();
-                std::cout << "\n--- Категории ---\n";
-                for (const auto& c : cats) std::cout << "- " << c << "\n";
-                pauseConsole();
-                break;
+        // Цикл аутентификации
+        while (!authenticated) {
+            if (profileLogin(masterPassword, currentUser, vault)) {
+                authenticated = true;
+            } else {
+                std::cout << "Повторить вход? (y/n/q-выход): ";
+                char c;
+                if (!(std::cin >> c)) c = 'q';
+                clearInputBuffer();
+                if (c == 'q' || c == 'Q') return 0;
             }
-            case 5:
-                std::cout << "\nПароль: " << vault.generatePassword(16, true, true, true, true) << "\n";
-                pauseConsole();
-                break;
-            case 6: handleStatistics(vault); break;
-            case 7:
-                if (vault.saveToFile(masterPassword)) std::cout << "Сохранено.\n";
-                else std::cout << "ОШИБКА!\n";
-                running = false;
-                break;
-            case 0: running = false; break;
-            default: std::cout << "Неверный выбор.\n"; pauseConsole(); break;
+        }
+
+        // Цикл сессии пользователя
+        bool sessionActive = true;
+        while (sessionActive) {
+            printHeader(currentUser);
+            // Используем std::endl для надежного вывода кириллицы
+            std::cout << "1. Добавить запись" << std::endl;
+            std::cout << "2. Поиск и просмотр (Расширенный)" << std::endl;
+            std::cout << "3. Показать все записи" << std::endl;
+            std::cout << "4. Категории" << std::endl;
+            std::cout << "5. Генератор паролей" << std::endl;
+            std::cout << "6. Сохранить изменения" << std::endl;
+            std::cout << "7. Сменить пользователя" << std::endl;
+            std::cout << "0. Выйти из программы" << std::endl;
+            std::cout << "Выбор: ";
+
+            int choice;
+            if (!(std::cin >> choice)) {
+                std::cin.clear(); clearInputBuffer();
+                continue;
+            }
+
+            switch (choice) {
+                case 1:
+                    handleAddRecord(vault, masterPassword);
+                    pauseConsole();
+                    break;
+                case 2:
+                    handleAdvancedSearch(vault, masterPassword);
+                    break;
+                case 3:
+                    handleShowAllRecords(vault, masterPassword);
+                    break;
+                case 4: {
+                    auto cats = vault.getAllCategories();
+                    std::cout << "\n--- Категории ---\n";
+                    for (const auto& c : cats) std::cout << "- " << c << "\n";
+                    pauseConsole();
+                    break;
+                }
+                case 5:
+                    std::cout << "\nПароль: " << vault.generatePassword(16, true, true, true, true) << "\n";
+                    pauseConsole();
+                    break;
+                case 6:
+                    if (vault.saveToFile(masterPassword)) std::cout << "Хранилище сохранено.\n";
+                    else std::cout << "Ошибка сохранения!\n";
+                    pauseConsole();
+                    break;
+                case 7:
+                    vault.saveToFile(masterPassword); // Автосохранение
+                    sessionActive = false; // Возврат к экрану логина
+                    break;
+                case 0:
+                    vault.saveToFile(masterPassword); // Автосохранение
+                    return 0; // Полный выход
+                default:
+                    std::cout << "Неверный выбор.\n";
+                    pauseConsole();
+                    break;
+            }
         }
     }
     return 0;
